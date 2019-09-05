@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:scoped_model/scoped_model.dart';
+
+import 'package:mywarehouseproject/scoped_models/mainModel.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -8,33 +11,33 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final _usernameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
   bool _hidePassword = true;
 
   @override
   void dispose() {
-    _usernameController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
-  Widget _buildUsernameField() {
+  Widget _buildEmailField() {
     return Container(
         padding: EdgeInsets.only(left: 6.0, right: 6.0),
         child: TextField(
-          controller: _usernameController,
+          controller: _emailController,
           cursorColor: Colors.blue,
+          keyboardType: TextInputType.emailAddress,
           decoration: InputDecoration(
               focusedBorder: OutlineInputBorder(
                   borderSide: BorderSide(
-                      color:
-                          _validationErrorUsername ? Colors.red : Colors.blue,
+                      color: _validationErrorEmail ? Colors.red : Colors.blue,
                       width: 1.0)),
               border: InputBorder.none,
-              labelText: "Username",
-              prefixIcon: Icon(Icons.account_circle)),
+              labelText: "E-mail",
+              prefixIcon: Icon(Icons.mail)),
         ));
   }
 
@@ -67,44 +70,63 @@ class _LoginPageState extends State<LoginPage> {
         ));
   }
 
-  bool _login(String username, String password) {
-    return false;
+  Widget _buildLoginButton() {
+    return ScopedModelDescendant<MainModel>(
+        builder: (BuildContext context, Widget child, MainModel model) {
+      return ButtonTheme(
+          minWidth: 150.0,
+          height: 50.0,
+          child: FlatButton(
+            child: model.isLoading ? CircularProgressIndicator() : Text(
+              "LOGIN",
+              style: TextStyle(
+                  fontSize: 15.0,
+                  letterSpacing: 1.0,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white),
+            ),
+            color: Theme.of(context).primaryColor,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8.0)),
+            onPressed: () {
+              setState(() {
+                if (_emailController.text.isEmpty) {
+                  _validationErrorEmail = true;
+                  _emailErrorMessage = "E-mail field can't be empty.";
+                } else if (!RegExp(
+                        r"[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?")
+                    .hasMatch(_emailController.text)) {
+                  _validationErrorEmail = true;
+                  _emailErrorMessage = "Invalid e-mail.";
+                } else {
+                  _validationErrorEmail = false;
+                }
+
+                _passwordController.text.isEmpty
+                    ? _validationErrorPassword = true
+                    : _validationErrorPassword = false;
+
+                if (!_validationErrorEmail && !_validationErrorPassword) {
+                  _submitLoginForm(model.login);
+                }
+              });
+            },
+          ));
+    });
   }
 
-  Widget _buildLoginButton() {
-    return ButtonTheme(
-        minWidth: 150.0,
-        height: 50.0,
-        child: FlatButton(
-          child: Text(
-            "LOGIN",
-            style: TextStyle(
-                fontSize: 15.0,
-                letterSpacing: 1.0,
-                fontWeight: FontWeight.bold,
-                color: Colors.white),
-          ),
-          color: Theme.of(context).primaryColor,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
-          onPressed: () {
-            setState(() {
-              _usernameController.text.isEmpty
-                  ? _validationErrorUsername = true
-                  : _validationErrorUsername = false;
+  void _submitLoginForm(Function login) async {
+    final Map<String, dynamic> loginResponse =
+        await login(_emailController.text, _passwordController.text);
 
-              _passwordController.text.isEmpty
-                  ? _validationErrorPassword = true
-                  : _validationErrorPassword = false;
-
-              if (!_validationErrorUsername && !_validationErrorPassword) {
-                if (!_login(_usernameController.text, _passwordController.text)) {
-                  _loginError = true;
-                }
-              }
-            });
-          },
-        ));
+    setState(() {
+      if (!loginResponse['success']) {
+        _loginError = true;
+        _loginErrorMessage = loginResponse['message'];
+      } else {
+        Navigator.pushReplacementNamed(context, '/main');
+      }
+    });
   }
 
   @override
@@ -146,13 +168,14 @@ class _LoginPageState extends State<LoginPage> {
                               child: Text(
                                 "LOGIN",
                                 style: TextStyle(
+                                    color: Theme.of(context).primaryColor,
                                     fontFamily: "Poppins",
                                     letterSpacing: 1.0,
                                     fontSize: 26.0,
                                     fontWeight: FontWeight.bold),
                               )),
-                          _buildUsernameField(),
-                          _buildUsernameError(),
+                          _buildEmailField(),
+                          _buildEmailError(),
                           SizedBox(height: 10.0),
                           _buildPasswordField(),
                           _buildPasswordError(),
@@ -168,9 +191,11 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   // Error handling region
-  bool _validationErrorUsername = false;
+  bool _validationErrorEmail = false;
+  String _emailErrorMessage = '';
   bool _validationErrorPassword = false;
   bool _loginError = false;
+  String _loginErrorMessage = '';
 
   Widget _buildLogoImage(BuildContext context) {
     return Padding(
@@ -179,12 +204,12 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _buildUsernameError() {
+  Widget _buildEmailError() {
     return Visibility(
-        visible: _validationErrorUsername,
+        visible: _validationErrorEmail,
         child: Container(
             padding: EdgeInsets.only(left: 8.0),
-            child: Text("Username field can't be empty.",
+            child: Text(_emailErrorMessage,
                 style: TextStyle(
                     fontStyle: FontStyle.italic,
                     color: Colors.red,
@@ -208,7 +233,7 @@ class _LoginPageState extends State<LoginPage> {
         visible: _loginError,
         child: Container(
             padding: EdgeInsets.only(left: 8.0, top: 6.0),
-            child: Text("Incorrect username or password!",
+            child: Text(_loginErrorMessage,
                 style: TextStyle(
                     fontStyle: FontStyle.italic,
                     color: Colors.red,

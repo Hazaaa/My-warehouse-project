@@ -17,6 +17,9 @@ environment:
   sdk: ">=2.1.0 <3.0.0"
 
 dependencies:
+
+  cloud_firestore: ^0.12.9+3
+
   flutter:
     sdk: flutter
 
@@ -46,6 +49,8 @@ flutter:
   assets:
     - assets/logo.png
     - assets/logo-with-text.png
+    - assets/icon.png
+    - assets/Images/default-user-picture.png
   #  - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see

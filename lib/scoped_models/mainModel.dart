@@ -1,5 +1,6 @@
 import 'package:scoped_model/scoped_model.dart';
 
-class MainModel extends Model {
-  
-}
+import './connectedModels.dart';
+
+class MainModel extends Model with ConnectedModels, UserModel, ProductModel, UtilityModel, RightsModel {}
+

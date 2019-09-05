@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:mywarehouseproject/pages/newUserPage.dart';
 import 'package:scoped_model/scoped_model.dart';
 
 // Mine
 import 'package:mywarehouseproject/pages/loginPage.dart';
 import 'package:mywarehouseproject/scoped_models/mainModel.dart';
+import 'package:mywarehouseproject/pages/mainPage.dart';
 
 void main() {
   runApp(MyApp());
@@ -17,6 +19,7 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
+  final MainModel _model = MainModel();
   Brightness _themeBrightness = Brightness.light;
 
   void _changeThemeBrightness() {
@@ -32,7 +35,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return ScopedModel<MainModel>(
-      model: MainModel(),
+      model: _model,
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
@@ -42,6 +45,8 @@ class _MyAppState extends State<MyApp> {
             fontFamily: "Poppins"),
         routes: {
           '/': (BuildContext context) => LoginPage(),
+          '/main': (BuildContext context) => MainPage(_model),
+          '/newUser': (BuildContext context) => NewUserPage(_model),
           // '/products': (BuildContext context) => ProductsPage(),
           // '/admin': (BuildContext context) => ProductsAdminPage(),
         },
