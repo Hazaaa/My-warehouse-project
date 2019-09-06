@@ -28,6 +28,7 @@ dependencies:
   cupertino_icons: ^0.1.2
   scoped_model: ^1.0.1
   http: ^0.12.0+2
+  grouped_buttons: ^1.0.4
 
 dev_dependencies:
   flutter_test:

@@ -62,10 +62,19 @@ class _MainPageState extends State<MainPage> {
           ),
           ListTile(leading: Icon(Icons.people), title: Text('List workers')),
           Divider(),
-          ListTile(leading: Icon(Icons.work), title: Text('Add new sector')),
+          ListTile(
+            leading: Icon(Icons.work),
+            title: Text('Add new sector'),
+            onTap: () {
+              Navigator.of(context).pushReplacementNamed('/newSector');
+            },
+          ),
           ListTile(
               leading: Icon(Icons.store_mall_directory),
-              title: Text('List sectors')),
+              title: Text('List sectors'),
+              onTap: () {
+                Navigator.of(context).pushReplacementNamed('/sectors');
+              }),
           Divider(),
           ListTile(leading: Icon(Icons.report), title: Text('Reports')),
           ListTile(leading: Icon(Icons.bug_report), title: Text('Analytics')),

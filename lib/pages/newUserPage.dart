@@ -1,4 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:grouped_buttons/grouped_buttons.dart';
 import 'package:mywarehouseproject/custom_widgets/logoAppBar.dart';
 import 'package:mywarehouseproject/models/right.dart';
 import 'package:mywarehouseproject/scoped_models/mainModel.dart';
@@ -18,12 +20,15 @@ class NewUserPage extends StatefulWidget {
 class _NewUserPageState extends State<NewUserPage> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   bool isChecked = true;
+  List<String> selectedRights;
+  var selectedSector;
 
   @override
   initState() {
     // Fetch rights
     // Fetch sectors
     super.initState();
+    widget._model.fetchRights();
   }
 
   Widget _buildNameAndSurenameTextField() {
@@ -119,38 +124,98 @@ class _NewUserPageState extends State<NewUserPage> {
   }
 
   Widget _buildSectorPicker() {
-    return DropdownButton<String>(
-      hint: Text("Please choose worker sector"),
-      items: widget._model.getRights.map((Right right) {
-        return DropdownMenuItem<String>(
-          value: right.name,
-          child: Text(right.name),
-        );
-      }).toList(),
-      onChanged: (newVal) {
-        setState(() {});
+    return StreamBuilder(
+      stream: widget._model.getSectorsFirestoreStream(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return Center(
+            child: Column(
+                children: <Widget>[CircularProgressIndicator()],
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center),
+          );
+        } else {
+          List<DropdownMenuItem> sectorsList = [];
+          for (var i = 0; i < snapshot.data.documents.length; i++) {
+            DocumentSnapshot document = snapshot.data.documents[i];
+            sectorsList.add(
+              DropdownMenuItem(
+                child: Text(document['name']),
+                value: document.documentID,
+              ),
+            );
+          }
+          return Container(
+            margin: EdgeInsets.only(left: 15.0, right: 15.0),
+            padding: EdgeInsets.only(left: 12.0, right: 15.0),
+            decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey),
+                borderRadius: BorderRadius.circular(10.0)),
+            child: Row(
+              children: <Widget>[
+                Icon(Icons.work, color: Colors.grey),
+                DropdownButtonHideUnderline(
+                  child: ButtonTheme(
+                    alignedDropdown: true,
+                    child: DropdownButton(
+                      hint: Text("Choose sector"),
+                      value: selectedSector,
+                      items: sectorsList,
+                      onChanged: (sector) {
+                        final snackBar = SnackBar(
+                          content: Text(sector),
+                        );
+                        setState(() {
+                          selectedSector = sector;
+                        });
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
       },
     );
   }
 
   Widget _buildRightsPicker() {
-    return SingleChildScrollView(
-      child: Container(
-        child: Column(
-          children: widget._model.getRights
-              .map((Right right) => CheckboxListTile(
-                    title: Text(right.name),
-                    value: isChecked,
-                    onChanged: (val) {
-                      setState(() {
-                        isChecked = val;
-                      });
-                    },
-                  ))
-              .toList(),
-        ),
-      ),
-    );
+    return StreamBuilder(
+        stream: widget._model.getRightsFirestoreStream(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return Center(
+              child: Column(
+                  children: <Widget>[CircularProgressIndicator()],
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.center),
+            );
+          } else {
+            List<String> rightsList = [];
+            for (var i = 0; i < snapshot.data.documents.length; i++) {
+              DocumentSnapshot document = snapshot.data.documents[i];
+              rightsList.add(document['name']);
+            }
+            return Container(
+              padding: EdgeInsets.only(left: 15.0, right: 15.0),
+              child: Container(
+                decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey),
+                    borderRadius: BorderRadius.circular(10.0)),
+                height: 300.0,
+                child: SingleChildScrollView(
+                  child: CheckboxGroup(
+                      // disabled: rightsList,
+                      checkColor: Theme.of(context).primaryColor,
+                      labels: rightsList,
+                      onSelected: (List<String> checked) =>
+                          selectedRights = checked),
+                ),
+              ),
+            );
+          }
+        });
   }
 
   Widget _buildNewUserForm(BuildContext context) {
@@ -193,6 +258,12 @@ class _NewUserPageState extends State<NewUserPage> {
                     SizedBox(height: 10.0),
                     _buildPasswordTextField(),
                     SizedBox(height: 10.0),
+                    _buildSectorPicker(),
+                    SizedBox(height: 10.0),
+                    Text(
+                      "Rights",
+                      style: TextStyle(color: Colors.grey, fontSize: 18.0),
+                    ),
                     _buildRightsPicker(),
                   ],
                 ),
@@ -206,24 +277,19 @@ class _NewUserPageState extends State<NewUserPage> {
 
   @override
   Widget build(BuildContext context) {
-    return ScopedModelDescendant(
-      builder: (BuildContext context, Widget child, MainModel model) {
-        return Scaffold(
-          backgroundColor: Theme.of(context).accentColor,
-          appBar: AppBar(
-            leading: IconButton(
-              icon: Icon(Icons.arrow_back),
-              onPressed: () {
-                Navigator.of(context).pushReplacementNamed('/main');
-              },
-            ),
-            title: LogoAppBar(),
-            elevation:
-                Theme.of(context).platform == TargetPlatform.iOS ? 0.0 : 4.0,
-          ),
-          body: _buildNewUserForm(context),
-        );
-      },
+    return Scaffold(
+      backgroundColor: Theme.of(context).accentColor,
+      appBar: AppBar(
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.of(context).pushReplacementNamed('/main');
+          },
+        ),
+        title: LogoAppBar(),
+        elevation: Theme.of(context).platform == TargetPlatform.iOS ? 0.0 : 4.0,
+      ),
+      body: _buildNewUserForm(context),
     );
   }
 }

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:mywarehouseproject/pages/newUserPage.dart';
 import 'package:scoped_model/scoped_model.dart';
 
 // Mine
 import 'package:mywarehouseproject/pages/loginPage.dart';
 import 'package:mywarehouseproject/scoped_models/mainModel.dart';
 import 'package:mywarehouseproject/pages/mainPage.dart';
+import 'package:mywarehouseproject/pages/newSectorPage.dart';
+import 'package:mywarehouseproject/pages/newUserPage.dart';
+import 'package:mywarehouseproject/pages/sectorsPage.dart';
 
 void main() {
   runApp(MyApp());
@@ -47,8 +49,8 @@ class _MyAppState extends State<MyApp> {
           '/': (BuildContext context) => LoginPage(),
           '/main': (BuildContext context) => MainPage(_model),
           '/newUser': (BuildContext context) => NewUserPage(_model),
-          // '/products': (BuildContext context) => ProductsPage(),
-          // '/admin': (BuildContext context) => ProductsAdminPage(),
+          '/newSector': (BuildContext context) => NewSectorPage(),
+          '/sectors': (BuildContext context) => SectorsPage(),
         },
         // onGenerateRoute: (RouteSettings settings) {
         //   final List<String> pathElements = settings.name.split('/');
