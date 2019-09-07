@@ -117,7 +117,7 @@ class _LoginPageState extends State<LoginPage> {
 
   void _submitLoginForm(Function login) async {
     final Map<String, dynamic> loginResponse =
-        await login(_emailController.text, _passwordController.text);
+        (await login(_emailController.text, _passwordController.text));
 
     setState(() {
       if (!loginResponse['success']) {
@@ -211,7 +211,6 @@ class _LoginPageState extends State<LoginPage> {
             padding: EdgeInsets.only(left: 8.0),
             child: Text(_emailErrorMessage,
                 style: TextStyle(
-                    fontStyle: FontStyle.italic,
                     color: Colors.red,
                     fontSize: 12.0))));
   }
@@ -223,7 +222,6 @@ class _LoginPageState extends State<LoginPage> {
             padding: EdgeInsets.only(left: 8.0),
             child: Text("Password field can't be empty.",
                 style: TextStyle(
-                    fontStyle: FontStyle.italic,
                     color: Colors.red,
                     fontSize: 12.0))));
   }
@@ -235,7 +233,6 @@ class _LoginPageState extends State<LoginPage> {
             padding: EdgeInsets.only(left: 8.0, top: 6.0),
             child: Text(_loginErrorMessage,
                 style: TextStyle(
-                    fontStyle: FontStyle.italic,
                     color: Colors.red,
                     fontSize: 16.0))));
   }

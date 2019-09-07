@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mywarehouseproject/custom_widgets/logoAppBar.dart';
 
 import 'package:mywarehouseproject/scoped_models/mainModel.dart';
@@ -60,7 +59,13 @@ class _MainPageState extends State<MainPage> {
               Navigator.of(context).pushReplacementNamed('/newUser');
             },
           ),
-          ListTile(leading: Icon(Icons.people), title: Text('List workers')),
+          ListTile(
+            leading: Icon(Icons.people),
+            title: Text('List workers'),
+            onTap: () {
+              Navigator.of(context).pushReplacementNamed('/workers');
+            },
+          ),
           Divider(),
           ListTile(
             leading: Icon(Icons.work),

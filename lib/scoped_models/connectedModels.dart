@@ -1,6 +1,8 @@
+import 'dart:io';
+import 'package:path/path.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:scoped_model/scoped_model.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:mywarehouseproject/models/user.dart';
@@ -8,6 +10,9 @@ import 'package:mywarehouseproject/models/right.dart';
 import 'package:mywarehouseproject/models/sector.dart';
 
 class ConnectedModels extends Model {
+  final Firestore firestoreInstance = Firestore.instance;
+  final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
+
   User _authenticatedUser;
   bool _isLoading = false;
   List<Right> _rights;
@@ -20,42 +25,215 @@ class UserModel extends ConnectedModels {
     return _authenticatedUser;
   }
 
+  Future<FirebaseUser> getCurrentUser() async {
+    FirebaseUser user = await _firebaseAuth.currentUser();
+    return user;
+  }
+
+  Future<Map<String, dynamic>> _uploadImage(
+      String fileName, File _imageFile) async {
+    if (_imageFile != null) {
+      try {
+        final fileExtension = extension(_imageFile.path);
+        final StorageReference storageRef =
+            FirebaseStorage.instance.ref().child(fileName + fileExtension);
+
+        final StorageUploadTask uploadTask = storageRef.putFile(_imageFile);
+
+        final StorageTaskSnapshot taskSnapshot = await uploadTask.onComplete;
+
+        String _imageDownloadUrl = await taskSnapshot.ref.getDownloadURL();
+
+        return {'success': true, 'imageUrl': _imageDownloadUrl};
+      } catch (e) {
+        return {'success': false, 'error': e};
+      }
+    }
+    return {'success': false, 'error': "Image file is null!"};
+  }
+
   Future<Map<String, dynamic>> login(String email, String password) async {
     _isLoading = true;
     notifyListeners();
-    final Map<String, dynamic> requestBody = {
-      'email': email,
-      'password': password,
-      'returnSecureToken': true
-    };
 
-    final http.Response response = await http.post(
-        "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=AIzaSyCbsAzSlQaDl9ii9v-8Cbh0j6koMcqLuTY",
-        body: json.encode(requestBody),
-        headers: {'Content-Type': 'application/json'});
-
-    final Map<String, dynamic> responseData = json.decode(response.body);
-    bool hasError = true;
+    bool hasError = false;
     String responseMessage = 'Something went wrong.';
 
-    if (responseData.containsKey('idToken')) {
-      hasError = false;
-      responseMessage = 'Login successfull.';
-    } else if (responseData['error']['message'] == 'EMAIL_NOT_FOUND' ||
-        responseData['error']['message'] == 'INVALID_PASSWORD') {
-      responseMessage = 'Invalid e-mail or password.';
-    } else if (responseData['error']['message'] == 'USER_DISABLED') {
-      responseMessage = 'User account has been disabled.';
+    AuthResult user = await _firebaseAuth
+        .signInWithEmailAndPassword(email: email.trim(), password: password)
+        .catchError((error) {
+      hasError = true;
+      // error.code => exmpl. ERROR_USER_NOT_FOUND, error.message => Human readable error
+      if (error.code == 'ERROR_INVALID_EMAIL' ||
+          error.code == 'ERROR_WRONG_PASSWORD') {
+        responseMessage = 'Invalid e-mail or password.';
+      } else if (error.code == 'ERROR_USER_DISABLED') {
+        responseMessage = 'User account has been disabled.';
+      } else if (error.code == 'ERROR_USER_NOT_FOUND') {
+        responseMessage = 'User not found.';
+      } else if (error.code == 'ERROR_TOO_MANY_REQUESTS') {
+        responseMessage =
+            'There was too many unsuccessfull attempts to sign in.';
+      } else if (error.code == 'ERROR_OPERATION_NOT_ALLOWED') {
+        responseMessage = 'E-mail & password sign is disabled.';
+      }
+    });
+
+    if (user == null) {
+      _isLoading = false;
+      notifyListeners();
+
+      return {'success': !hasError, 'message': responseMessage};
+    } else {
+      _authenticatedUser = User(
+          email: user.user.email,
+          id: user.user.uid,
+          token: (await user.user.getIdToken()).token);
+
+      _isLoading = false;
+      notifyListeners();
+      return {'success': !hasError, 'message': responseMessage};
     }
 
-    _authenticatedUser = User(
-        id: responseData['localId'],
-        email: email,
-        token: responseData['idToken']);
+    // OLD SIGN IN WITH FIREBASE REST API (WORKS)
+    // final http.Response response = await http.post(
+    //     "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=AIzaSyCbsAzSlQaDl9ii9v-8Cbh0j6koMcqLuTY",
+    //     body: json.encode(requestBody),
+    //     headers: {'Content-Type': 'application/json'});
 
-    _isLoading = false;
+    // final Map<String, dynamic> responseData = json.decode(response.body);
+    // bool hasError = true;
+    // String responseMessage = 'Something went wrong.';
+
+    // if (user.user.getIdToken() != null) {
+    //   hasError = false;
+    //   responseMessage = 'Login successfull.';
+    // } else if (responseData['error']['message'] == 'EMAIL_NOT_FOUND' ||
+    //     responseData['error']['message'] == 'INVALID_PASSWORD') {
+    //   responseMessage = 'Invalid e-mail or password.';
+    // } else if (responseData['error']['message'] == 'USER_DISABLED') {
+    //   responseMessage = 'User account has been disabled.';
+    // }
+
+    // _authenticatedUser = User(
+    //     id: responseData['localId'],
+    //     email: email,
+    //     token: responseData['idToken']);
+
+    // _isLoading = false;
+    // notifyListeners();
+    // return {'success': !hasError, 'message': responseMessage};
+  }
+
+  Future<Map<String, dynamic>> addNewUser(Map<String, dynamic> userData) async {
+    _isLoading = true;
     notifyListeners();
-    return {'success': !hasError, 'message': responseMessage};
+
+    bool hasError = false;
+    String responseMessage = 'Something went wrong.';
+
+    AuthResult user = await _firebaseAuth
+        .createUserWithEmailAndPassword(
+            email: userData['email'].trim(), password: userData['password'])
+        .catchError((error) {
+      hasError = true;
+      // error.code => exmpl. ERROR_USER_NOT_FOUND, error.message => Human readable error
+      if (error.code == 'ERROR_WEAK_PASSWORD') {
+        responseMessage = 'Password is too weak.';
+      } else if (error.code == 'ERROR_INVALID_EMAIL') {
+        responseMessage = 'Invalid e-mail.';
+      } else if (error.code == 'ERROR_EMAIL_ALREADY_IN_USE') {
+        responseMessage = 'E-mail is already in use';
+      }
+    });
+
+    if (user == null) {
+      _isLoading = false;
+      notifyListeners();
+      return {'success': !hasError, 'message': responseMessage};
+    } else {
+      Map<String, dynamic> uploadImageResult;
+
+      if (userData['imageFile'] != null) {
+        uploadImageResult = await _uploadImage(
+            userData['name'] + "_image", userData['imageFile']);
+      }
+
+      if (uploadImageResult['success']) {
+        await firestoreInstance.collection('workers').add({
+          'id': user.user.uid,
+          'name': userData['name'],
+          'address': userData['address'],
+          'phone': userData['phone'],
+          'sector': userData['sector'],
+          'adminOrUser': userData['adminOrUser'],
+          'rights': userData['rights'],
+          'email': userData['email'],
+          'imageUrl': uploadImageResult['imageUrl']
+        }).catchError((error) {
+          hasError = true;
+          responseMessage = error;
+        });
+      } else {
+        await firestoreInstance.collection('workers').add({
+          'id': user.user.uid,
+          'name': userData['name'],
+          'address': userData['address'],
+          'phone': userData['phone'],
+          'sector': userData['sector'],
+          'adminOrUser': userData['adminOrUser'],
+          'rights': userData['rights'],
+          'email': userData['email'],
+          'imageUrl': null
+        }).catchError((error) {
+          hasError = true;
+          responseMessage = error;
+        });
+      }
+
+      _isLoading = false;
+      notifyListeners();
+
+      return {'success': !hasError, 'message': responseMessage};
+    }
+  }
+
+  Future<Map<String, dynamic>> updateUser(
+      String id, Map<String, dynamic> userData) async {
+    // _isLoading = true;
+    // notifyListeners();
+
+    // bool hasError = false;
+    // String responseMessage = 'Something went wrong.';
+
+    // AuthResult user = await _firebaseAuth
+    //     .signInWithEmailAndPassword(email: email.trim(), password: password)
+    //     .catchError((error) {
+    //       hasError = true;
+    //   // error.code => exmpl. ERROR_USER_NOT_FOUND, error.message => Human readable error
+    //   if (error.code == 'ERROR_INVALID_EMAIL' || error.code == 'ERROR_WRONG_PASSWORD') {
+    //     responseMessage = 'Invalid e-mail or password.';
+    //   } else if (error.code == 'ERROR_USER_DISABLED') {
+    //     responseMessage = 'User account has been disabled.';
+    //   } else if (error.code == 'ERROR_USER_NOT_FOUND') {
+    //     responseMessage = 'User not found.';
+    //   } else if (error.code == 'ERROR_TOO_MANY_REQUESTS') {
+    //     responseMessage = 'There was too many unsuccessfull attempts to sign in.';
+    //   } else if (error.code == 'ERROR_OPERATION_NOT_ALLOWED') {
+    //     responseMessage = 'E-mail & password sign is disabled.';
+    //   }
+    // });
+
+    // _authenticatedUser = User(
+    //   email: user.user.email,
+    //   id: user.user.uid,
+    //   token: (await user.user.getIdToken()).token
+    // );
+
+    // _isLoading = false;
+    // notifyListeners();
+
+    // return {'success': !hasError, 'message': responseMessage};
   }
 }
 
@@ -67,16 +245,20 @@ class RightsModel extends ConnectedModels {
   }
 
   Stream<QuerySnapshot> getRightsFirestoreStream() {
-    return Firestore.instance.collection('rights').orderBy('order').snapshots();
+    return firestoreInstance.collection('rights').orderBy('order').snapshots();
   }
 
   Future<bool> fetchRights() async {
     _isLoading = true;
     notifyListeners();
-    var responseRightsDocuments =
-        await Firestore.instance.collection('rights').orderBy('order').getDocuments();
+    var responseRightsDocuments = await firestoreInstance
+        .collection('rights')
+        .orderBy('order')
+        .getDocuments();
 
-    if(responseRightsDocuments.documents.length == 0) {
+    if (responseRightsDocuments.documents.length == 0) {
+      _isLoading = false;
+      notifyListeners();
       return false;
     }
     List<Right> tempRightsList = [];
@@ -105,17 +287,20 @@ class SectorModel extends ConnectedModels {
   }
 
   Stream<QuerySnapshot> getSectorsFirestoreStream() {
-    return Firestore.instance.collection('sectors').orderBy('name').snapshots();
+    return firestoreInstance.collection('sectors').orderBy('name').snapshots();
   }
 
-  Future<Map<String, dynamic>> addSector(String name, String description) async {
+  Future<Map<String, dynamic>> addSector(
+      String name, String description) async {
     _isLoading = true;
     notifyListeners();
 
     bool successfullAdd = true;
     String errorMessage = "";
 
-    await Firestore.instance.collection('sectors').add({'name': name, 'description': description}).catchError((error) {
+    await firestoreInstance
+        .collection('sectors')
+        .add({'name': name, 'description': description}).catchError((error) {
       successfullAdd = false;
       errorMessage = error;
     });
@@ -125,14 +310,16 @@ class SectorModel extends ConnectedModels {
     return {'success': successfullAdd, 'error': errorMessage};
   }
 
-  Future<Map<String, dynamic>> updateSector(String id, String name, String description) async {
+  Future<Map<String, dynamic>> updateSector(
+      String id, String name, String description) async {
     _isLoading = true;
     notifyListeners();
 
     bool successfullUpdate = true;
     String errorMessage = "";
 
-    await Firestore.instance.collection('sectors').document(id).setData({'name': name, 'description': description}).catchError((error) {
+    await firestoreInstance.collection('sectors').document(id).setData(
+        {'name': name, 'description': description}).catchError((error) {
       successfullUpdate = false;
       errorMessage = error;
     });
@@ -146,7 +333,11 @@ class SectorModel extends ConnectedModels {
     bool successfullUpdate = true;
     String errorMessage = "";
 
-    await Firestore.instance.collection('sectors').document(id).delete().catchError((error) {
+    await firestoreInstance
+        .collection('sectors')
+        .document(id)
+        .delete()
+        .catchError((error) {
       successfullUpdate = false;
       errorMessage = error;
     });
@@ -156,10 +347,14 @@ class SectorModel extends ConnectedModels {
   Future<bool> fetchSectors() async {
     _isLoading = true;
     notifyListeners();
-    var responseSectorsDocuments =
-        await Firestore.instance.collection('sectors').orderBy('name').getDocuments();
+    var responseSectorsDocuments = await firestoreInstance
+        .collection('sectors')
+        .orderBy('name')
+        .getDocuments();
 
-    if(responseSectorsDocuments.documents.length == 0) {
+    if (responseSectorsDocuments.documents.length == 0) {
+      _isLoading = false;
+      notifyListeners();
       return false;
     }
     List<Sector> tempSectorsList = [];
@@ -167,7 +362,8 @@ class SectorModel extends ConnectedModels {
       final Sector newRight = Sector(
           id: responseSectorsDocuments.documents[i].documentID,
           name: responseSectorsDocuments.documents[i].data['name'],
-          description: responseSectorsDocuments.documents[i].data['description']);
+          description:
+              responseSectorsDocuments.documents[i].data['description']);
       tempSectorsList.add(newRight);
     }
     _sectors = tempSectorsList;

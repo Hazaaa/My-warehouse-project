@@ -262,18 +262,6 @@ class _NewSectorPageState extends State<NewSectorPage> {
   bool _addNewSectorError = false;
   String _addNewSectorErrorMessage = "";
 
-  Widget _buildSectorNameError() {
-    return Visibility(
-        visible: _nameValidationError,
-        child: Container(
-            padding: EdgeInsets.only(left: 8.0),
-            child: Text("Sector name can't be empty.",
-                style: TextStyle(
-                    fontStyle: FontStyle.italic,
-                    color: Colors.red,
-                    fontSize: 12.0))));
-  }
-
   Widget _buildAddNewSectorError() {
     return Visibility(
         visible: _addNewSectorError,
@@ -281,8 +269,18 @@ class _NewSectorPageState extends State<NewSectorPage> {
             padding: EdgeInsets.only(left: 8.0, top: 6.0),
             child: Text(_addNewSectorErrorMessage,
                 style: TextStyle(
-                    fontStyle: FontStyle.italic,
                     color: Colors.red,
                     fontSize: 16.0))));
+  }
+
+  Widget _buildSectorNameError() {
+    return Visibility(
+        visible: _nameValidationError,
+        child: Container(
+            padding: EdgeInsets.only(left: 8.0),
+            child: Text("Sector name can't be empty.",
+                style: TextStyle(
+                    color: Colors.red,
+                    fontSize: 12.0))));
   }
 }

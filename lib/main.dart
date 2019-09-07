@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mywarehouseproject/pages/workersPage.dart';
 import 'package:scoped_model/scoped_model.dart';
 
 // Mine
@@ -48,9 +49,10 @@ class _MyAppState extends State<MyApp> {
         routes: {
           '/': (BuildContext context) => LoginPage(),
           '/main': (BuildContext context) => MainPage(_model),
-          '/newUser': (BuildContext context) => NewUserPage(_model),
+          '/newUser': (BuildContext context) => NewUserPage(null, _model),
           '/newSector': (BuildContext context) => NewSectorPage(),
           '/sectors': (BuildContext context) => SectorsPage(),
+          '/workers': (BuildContext context) => WorkersPage()
         },
         // onGenerateRoute: (RouteSettings settings) {
         //   final List<String> pathElements = settings.name.split('/');
