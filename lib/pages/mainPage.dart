@@ -32,13 +32,21 @@ class _MainPageState extends State<MainPage> {
                 Theme.of(context).platform == TargetPlatform.iOS ? 0.0 : 4.0,
             title: Row(
               children: <Widget>[
-                CircleAvatar(),
+                CircleAvatar(
+                  backgroundColor: Colors.white,
+                  backgroundImage: (widget.model.authenticatedUser.imageUrl ==
+                          null)
+                      ? AssetImage('assets/Images/default-user-picture.png')
+                      : NetworkImage(widget.model.authenticatedUser.imageUrl),
+                ),
                 Padding(
                   child: Text(
-                    widget.model.authenticatedUser.email,
-                    style: TextStyle(fontSize: 16.0),
+                    (widget.model.authenticatedUser.name != null)
+                        ? widget.model.authenticatedUser.name
+                        : widget.model.authenticatedUser.email,
+                    style: TextStyle(fontSize: 18.0),
                   ),
-                  padding: EdgeInsets.only(left: 10.0),
+                  padding: EdgeInsets.only(left: 13.0),
                 )
               ],
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -81,7 +89,13 @@ class _MainPageState extends State<MainPage> {
                 Navigator.of(context).pushReplacementNamed('/sectors');
               }),
           Divider(),
-          ListTile(leading: Icon(Icons.report), title: Text('Reports')),
+          ListTile(
+              leading: Icon(Icons.report),
+              title: Text('Send report'),
+              onTap: () {
+                Navigator.of(context).pushReplacementNamed('/newReport');
+              }),
+          ListTile(leading: Icon(Icons.report_problem), title: Text('Reports')),
           ListTile(leading: Icon(Icons.bug_report), title: Text('Analytics')),
           Divider(),
           ListTile(
@@ -89,6 +103,16 @@ class _MainPageState extends State<MainPage> {
         ],
       ),
     ));
+  }
+
+  Widget _buildMainPageBody() {
+    return Center(child: Text(
+        "News feed",
+        style: TextStyle(
+            color: Theme.of(context).accentColor,
+            fontSize: 18.0,
+            fontWeight: FontWeight.bold),
+      ),);
   }
 
   @override
@@ -100,7 +124,7 @@ class _MainPageState extends State<MainPage> {
         title: LogoAppBar(),
         elevation: Theme.of(context).platform == TargetPlatform.iOS ? 0.0 : 4.0,
       ),
-      //body: add body,
+      body: _buildMainPageBody()
     );
   }
 }

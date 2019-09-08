@@ -57,6 +57,24 @@ class UserModel extends ConnectedModels {
     return _firestoreInstance.collection('workers').orderBy('name').snapshots();
   }
 
+  void getAdditionalUserInfo() async {
+    if (_authenticatedUser.id != null && !_authenticatedUser.email.contains("admin")) {
+      QuerySnapshot response = await _firestoreInstance
+          .collection('workers').where("id", isEqualTo: _authenticatedUser.id)
+          .getDocuments();
+
+      DocumentSnapshot document = response.documents.single;
+
+      _authenticatedUser.address = document['address'];
+      _authenticatedUser.adminOrUser = document['adminOrUser'];
+      _authenticatedUser.imageUrl = document['imageUrl'];
+      _authenticatedUser.name = document['name'];
+      _authenticatedUser.rights = document['rights'].cast<String>();
+      _authenticatedUser.phone = document['phone'];
+      _authenticatedUser.sector = document['sector'];    
+    }
+  }
+
   Future<Map<String, dynamic>> login(String email, String password) async {
     _isLoading = true;
     notifyListeners();
@@ -94,6 +112,8 @@ class UserModel extends ConnectedModels {
           email: user.user.email,
           id: user.user.uid,
           token: (await user.user.getIdToken()).token);
+
+      await getAdditionalUserInfo();
 
       _isLoading = false;
       notifyListeners();
@@ -423,6 +443,33 @@ class SectorModel extends ConnectedModels {
     _isLoading = false;
     notifyListeners();
     return true;
+  }
+}
+
+class ReportModel extends ConnectedModels {
+  String formatDate(DateTime date) {
+    return "${date.day}.${date.month}.${date.year}. ${date.hour}:${date.minute}";
+  }
+
+  Future<Map<String, dynamic>> addNewReport(String reportText) async {
+    _isLoading = true;
+    notifyListeners();
+
+    bool successfullAdd = true;
+    String errorMessage = "";
+
+    await _firestoreInstance.collection('reports').add({
+      'userReported': _authenticatedUser.name,
+      'description': reportText.trim(),
+      'time': formatDate(DateTime.now())
+    }).catchError((error) {
+      successfullAdd = false;
+      errorMessage = error;
+    });
+
+    _isLoading = false;
+    notifyListeners();
+    return {'success': successfullAdd, 'error': errorMessage};
   }
 }
 

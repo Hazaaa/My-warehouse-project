@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:mywarehouseproject/pages/workersPage.dart';
 import 'package:scoped_model/scoped_model.dart';
 
 // Mine
@@ -9,6 +8,8 @@ import 'package:mywarehouseproject/pages/mainPage.dart';
 import 'package:mywarehouseproject/pages/newSectorPage.dart';
 import 'package:mywarehouseproject/pages/newUserPage.dart';
 import 'package:mywarehouseproject/pages/sectorsPage.dart';
+import 'package:mywarehouseproject/pages/newReportPage.dart';
+import 'package:mywarehouseproject/pages/workersPage.dart';
 
 void main() {
   runApp(MyApp());
@@ -40,8 +41,9 @@ class _MyAppState extends State<MyApp> {
           '/main': (BuildContext context) => MainPage(_model),
           '/newUser': (BuildContext context) => NewUserPage(null, _model),
           '/newSector': (BuildContext context) => NewSectorPage(),
+          '/newReport': (BuildContext context) => NewReportPage(),
           '/sectors': (BuildContext context) => SectorsPage(),
-          '/workers': (BuildContext context) => WorkersPage()
+          '/workers': (BuildContext context) => WorkersPage(),
         },
         // onGenerateRoute: (RouteSettings settings) {
         //   final List<String> pathElements = settings.name.split('/');
