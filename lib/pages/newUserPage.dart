@@ -1,7 +1,5 @@
 import 'dart:io';
-import 'package:path/path.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:grouped_buttons/grouped_buttons.dart';
 import 'package:image_picker/image_picker.dart';
@@ -41,11 +39,27 @@ class _NewUserPageState extends State<NewUserPage> {
   String selectedAdminUser;
   File _imageFile;
 
+  @override
+  initState() {
+    isUserForEdit ? selectedRights = widget.userForUpadte.rights : [];
+    isUserForEdit ? _nameTextController.text = widget.userForUpadte.name : "";
+    isUserForEdit ? selectedAdminUser = widget.userForUpadte.adminOrUser : null;
+    super.initState();
+  }
+
   bool get isUserForEdit {
     if (widget.userForUpadte != null) {
       return true;
     } else {
       return false;
+    }
+  }
+
+  bool shouldShowRights() {
+    if (selectedAdminUser == null || selectedAdminUser == "Admin") {
+      return false;
+    } else {
+      return true;
     }
   }
 
@@ -67,6 +81,7 @@ class _NewUserPageState extends State<NewUserPage> {
           if (typed.isEmpty || typed.length < 8) {
             return "Name and Surename field shouldn't be empty and should be 8+ characters long.";
           }
+          return null;
         },
         onSaved: (String typed) {
           _formData['name'] = typed;
@@ -79,6 +94,7 @@ class _NewUserPageState extends State<NewUserPage> {
     return Container(
       padding: EdgeInsets.only(left: 15.0, right: 15.0),
       child: TextFormField(
+        initialValue: isUserForEdit ? widget.userForUpadte.address : "",
         cursorColor: Theme.of(context).primaryColor,
         decoration: InputDecoration(
           focusColor: Theme.of(context).primaryColor,
@@ -92,6 +108,7 @@ class _NewUserPageState extends State<NewUserPage> {
           if (typed.isEmpty) {
             return "Address field shouldn't be empty.";
           }
+          return null;
         },
         onSaved: (String typed) {
           _formData['address'] = typed;
@@ -104,6 +121,7 @@ class _NewUserPageState extends State<NewUserPage> {
     return Container(
       padding: EdgeInsets.only(left: 15.0, right: 15.0),
       child: TextFormField(
+        initialValue: isUserForEdit ? widget.userForUpadte.phone : "",
         keyboardType: TextInputType.phone,
         cursorColor: Theme.of(context).primaryColor,
         decoration: InputDecoration(
@@ -118,13 +136,13 @@ class _NewUserPageState extends State<NewUserPage> {
           if (typed.isEmpty || typed.length < 8) {
             return "Phone number field shouldn't be empty and should be 8+ characters long.";
           }
+          return null;
         },
         onSaved: (String typed) {
           _formData['phone'] = typed;
         },
       ),
     );
-    ;
   }
 
   Widget _buildEmailTextField(BuildContext context) {
@@ -149,6 +167,7 @@ class _NewUserPageState extends State<NewUserPage> {
               .hasMatch(typed)) {
             return "Entered e-mail is invalid.";
           }
+          return null;
         },
         onSaved: (String typed) {
           _formData['email'] = typed;
@@ -174,6 +193,7 @@ class _NewUserPageState extends State<NewUserPage> {
           if (typed.isEmpty || typed.length < 8) {
             return "Password field shouldn't be empty and and should be 8+ characters long.";
           }
+          return null;
         },
         onSaved: (String typed) {
           _formData['password'] = typed;
@@ -218,7 +238,9 @@ class _NewUserPageState extends State<NewUserPage> {
                     alignedDropdown: true,
                     child: DropdownButton(
                       hint: Text("Choose sector"),
-                      value: selectedSector,
+                      value: (isUserForEdit && selectedSector == null)
+                          ? widget.userForUpadte.sector
+                          : selectedSector,
                       items: sectorsList,
                       onChanged: (sector) {
                         setState(() {
@@ -242,6 +264,7 @@ class _NewUserPageState extends State<NewUserPage> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: <Widget>[
         RadioButtonGroup(
+          picked: selectedAdminUser,
           orientation: GroupedButtonsOrientation.HORIZONTAL,
           padding: EdgeInsets.only(left: 50.0, right: 50.0),
           labels: ["Admin", "User"],
@@ -274,10 +297,7 @@ class _NewUserPageState extends State<NewUserPage> {
               rightsList.add(document['name']);
             }
             return Visibility(
-              visible:
-                  (selectedAdminUser == null || selectedAdminUser == "Admin")
-                      ? false
-                      : true,
+              visible: shouldShowRights(),
               child: Container(
                 padding: EdgeInsets.only(left: 15.0, right: 15.0),
                 child: Container(
@@ -287,10 +307,14 @@ class _NewUserPageState extends State<NewUserPage> {
                   height: 300.0,
                   child: SingleChildScrollView(
                     child: CheckboxGroup(
+                        checked: selectedRights,
                         checkColor: Theme.of(context).primaryColor,
                         labels: rightsList,
-                        onSelected: (List<String> checked) =>
-                            selectedRights = checked),
+                        onSelected: (List<String> checked) {
+                          setState(() {
+                            selectedRights = checked;
+                          });
+                        }),
                   ),
                 ),
               ),
@@ -304,14 +328,16 @@ class _NewUserPageState extends State<NewUserPage> {
       minWidth: 150.0,
       height: 50.0,
       child: FlatButton(
-        child: widget._model.isLoading ? CircularProgressIndicator() : Text(
-          isUserForEdit ? "UPDATE USER" : "ADD NEW USER",
-          style: TextStyle(
-              fontSize: 15.0,
-              letterSpacing: 1.0,
-              fontWeight: FontWeight.bold,
-              color: Colors.white),
-        ),
+        child: widget._model.isLoading
+            ? CircularProgressIndicator()
+            : Text(
+                isUserForEdit ? "UPDATE USER" : "ADD NEW USER",
+                style: TextStyle(
+                    fontSize: 15.0,
+                    letterSpacing: 1.0,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white),
+              ),
         color: Theme.of(context).primaryColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
         onPressed: () {
@@ -319,12 +345,30 @@ class _NewUserPageState extends State<NewUserPage> {
             if (!_formKey.currentState.validate()) {
               return;
             }
-            selectedSector == null
-                ? _validationSectorError = true
-                : _validationSectorError = false;
-            selectedAdminUser == null
-                ? _validationAdminUserError = true
-                : _validationAdminUserError = false;
+
+            if (selectedSector == null) {
+              if (isUserForEdit) {
+                selectedSector = widget.userForUpadte.sector;
+                _validationSectorError = false;
+              } else {
+                _validationSectorError = true;
+              }
+            }
+
+            if (selectedAdminUser == null) {
+              if (isUserForEdit) {
+                selectedAdminUser = widget.userForUpadte.adminOrUser;
+                _validationAdminUserError = false;
+              } else {
+                _validationAdminUserError = true;
+              }
+            }
+
+            if (isUserForEdit) {
+              if (selectedRights == null) {
+                selectedRights = widget.userForUpadte.rights;
+              }
+            }
 
             if (!_validationAdminUserError && !_validationSectorError) {
               showDialog(
@@ -361,14 +405,17 @@ class _NewUserPageState extends State<NewUserPage> {
                             _formKey.currentState.save();
                             _formData['sector'] = selectedSector;
                             _formData['adminOrUser'] = selectedAdminUser;
-                            _formData['rights'] = selectedRights;
+                            if (selectedAdminUser == "Admin") {
+                              _formData['rights'] = null;
+                            } else {
+                              _formData['rights'] = selectedRights;
+                            }
                             _formData['imageFile'] = _imageFile;
                             if (isUserForEdit) {
                               _submitEditUser(widget._model.updateUser);
                             } else {
                               _submitNewUser(widget._model.addNewUser);
                             }
-                            Navigator.pushReplacementNamed(context, '/workers');
                           },
                         )
                       ],
@@ -391,8 +438,11 @@ class _NewUserPageState extends State<NewUserPage> {
           child: _imageFile == null
               ? CircleAvatar(
                   maxRadius: 45.0,
-                  backgroundImage:
-                      AssetImage("assets/Images/default-user-picture.png"),
+                  backgroundImage: (isUserForEdit &&
+                          widget.userForUpadte.imageUrl != "" &&
+                          widget.userForUpadte.imageUrl != null)
+                      ? NetworkImage(widget.userForUpadte.imageUrl)
+                      : AssetImage("assets/Images/default-user-picture.png"),
                   backgroundColor: Colors.white,
                 )
               : ClipRRect(
@@ -418,27 +468,6 @@ class _NewUserPageState extends State<NewUserPage> {
         ),
       ],
     );
-  }
-
-  Widget _buildWarningForImageAndRights() {
-    bool missingImage = false;
-    bool missingRights = false;
-
-    String missingImageMessage = "Worker image isn't picked.";
-    String missingRightsMessage = "No rights were picked for worker.";
-
-    if (_imageFile == null) {
-      missingImage = true;
-    }
-    if (selectedRights == null && selectedAdminUser != "Admin") {
-      missingRights = true;
-    }
-
-    return isUserForEdit
-        ? Text(
-            "Are you sure you want to update worker '${widget.userForUpadte.name}' ? ${(missingImage || missingRights) ? " \n\n Warning:" : ""} ${missingImage ? "\n\n- " + missingImageMessage : ""} ${missingRights ? "\n\n- " + missingRightsMessage : ""}")
-        : Text(
-            "Are you sure you want to add worker '${_nameTextController.text}' ? ${(missingImage || missingRights) ? " \n\n Warning:" : ""} ${missingImage ? "\n\n- " + missingImageMessage : ""} ${missingRights ? "\n\n- " + missingRightsMessage : ""}");
   }
 
   void _getImage(BuildContext context, ImageSource source) {
@@ -496,23 +525,28 @@ class _NewUserPageState extends State<NewUserPage> {
   }
 
   void _submitNewUser(Function addNewUser) async {
-    final Map<String, dynamic> addSectorResponse = await addNewUser(_formData);
+    final Map<String, dynamic> addUserResponse = await addNewUser(_formData);
 
     setState(() {
-      if (!addSectorResponse['success']) {
+      if (!addUserResponse['success']) {
         _addNewUserError = true;
-        _addNewUserErrorMessage = addSectorResponse['message'];
+        _addNewUserErrorMessage = addUserResponse['message'];
+      } else {
+        Navigator.pushReplacementNamed(context, '/workers');
       }
     });
   }
 
   void _submitEditUser(Function updateUser) async {
-    final Map<String, dynamic> addSectorResponse = await updateUser(widget.userForUpadte.id, _formData);
+    final Map<String, dynamic> updateSectorResponse =
+        await updateUser(widget.userForUpadte.id, _formData);
 
     setState(() {
-      if (!addSectorResponse['success']) {
+      if (!updateSectorResponse['success']) {
         _addNewUserError = true;
-        _addNewUserErrorMessage = addSectorResponse['message'];
+        _addNewUserErrorMessage = updateSectorResponse['message'];
+      } else {
+        Navigator.pushReplacementNamed(context, '/workers');
       }
     });
   }
@@ -577,14 +611,23 @@ class _NewUserPageState extends State<NewUserPage> {
                           : true,
                       child: SizedBox(height: 10.0),
                     ),
-                    Text(
-                      "Worker login credentials",
-                      style: TextStyle(color: Colors.grey, fontSize: 18.0),
+                    Visibility(
+                      visible: isUserForEdit ? false : true,
+                      child: Text(
+                        "Worker login credentials",
+                        style: TextStyle(color: Colors.grey, fontSize: 18.0),
+                      ),
                     ),
                     SizedBox(height: 10.0),
-                    _buildEmailTextField(context),
+                    Visibility(
+                      visible: isUserForEdit ? false : true,
+                      child: _buildEmailTextField(context),
+                    ),
                     SizedBox(height: 10.0),
-                    _buildPasswordTextField(context),
+                    Visibility(
+                      visible: isUserForEdit ? false : true,
+                      child: _buildPasswordTextField(context),
+                    ),
                     SizedBox(height: 10.0),
                     _buildSubmitButton(context),
                     SizedBox(height: 10.0),
@@ -664,5 +707,32 @@ class _NewUserPageState extends State<NewUserPage> {
             padding: EdgeInsets.only(left: 8.0),
             child: Text("Worker must be admin or user.",
                 style: TextStyle(color: Colors.red[600], fontSize: 12.0))));
+  }
+
+  Widget _buildWarningForImageAndRights() {
+    bool missingImage = false;
+    bool missingRights = false;
+
+    String missingImageMessage = "Worker image isn't picked.";
+    String missingRightsMessage = "No rights were picked for worker.";
+
+    if (_imageFile == null && !isUserForEdit) {
+      missingImage = true;
+    }
+    if (selectedAdminUser != "Admin") {
+      if (selectedRights == null) {
+        missingRights = true;
+      } else if (selectedRights.isEmpty) {
+        missingRights = true;
+      } else {
+        missingRights = false;
+      }
+    }
+
+    return isUserForEdit
+        ? Text(
+            "Are you sure you want to update worker '${widget.userForUpadte.name}' ? ${(missingImage || missingRights) ? " \n\n Warning:" : ""} ${missingImage ? "\n\n- " + missingImageMessage : ""} ${missingRights ? "\n\n- " + missingRightsMessage : ""}")
+        : Text(
+            "Are you sure you want to add worker '${_nameTextController.text}' ? ${(missingImage || missingRights) ? " \n\n Warning:" : ""} ${missingImage ? "\n\n- " + missingImageMessage : ""} ${missingRights ? "\n\n- " + missingRightsMessage : ""}");
   }
 }

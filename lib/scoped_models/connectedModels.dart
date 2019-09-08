@@ -10,8 +10,9 @@ import 'package:mywarehouseproject/models/right.dart';
 import 'package:mywarehouseproject/models/sector.dart';
 
 class ConnectedModels extends Model {
-  final Firestore firestoreInstance = Firestore.instance;
+  final Firestore _firestoreInstance = Firestore.instance;
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
+  final FirebaseStorage _firebaseStorage = FirebaseStorage.instance;
 
   User _authenticatedUser;
   bool _isLoading = false;
@@ -30,13 +31,13 @@ class UserModel extends ConnectedModels {
     return user;
   }
 
-  Future<Map<String, dynamic>> _uploadImage(
+  Future<Map<String, dynamic>> uploadImage(
       String fileName, File _imageFile) async {
     if (_imageFile != null) {
       try {
         final fileExtension = extension(_imageFile.path);
         final StorageReference storageRef =
-            FirebaseStorage.instance.ref().child(fileName + fileExtension);
+            _firebaseStorage.ref().child(fileName + fileExtension);
 
         final StorageUploadTask uploadTask = storageRef.putFile(_imageFile);
 
@@ -46,10 +47,14 @@ class UserModel extends ConnectedModels {
 
         return {'success': true, 'imageUrl': _imageDownloadUrl};
       } catch (e) {
-        return {'success': false, 'error': e};
+        return {'success': false, 'error': e.message};
       }
     }
     return {'success': false, 'error': "Image file is null!"};
+  }
+
+  Stream<QuerySnapshot> getWorkersStream() {
+    return _firestoreInstance.collection('workers').orderBy('name').snapshots();
   }
 
   Future<Map<String, dynamic>> login(String email, String password) async {
@@ -155,12 +160,12 @@ class UserModel extends ConnectedModels {
       Map<String, dynamic> uploadImageResult;
 
       if (userData['imageFile'] != null) {
-        uploadImageResult = await _uploadImage(
+        uploadImageResult = await uploadImage(
             userData['name'] + "_image", userData['imageFile']);
       }
 
       if (uploadImageResult['success']) {
-        await firestoreInstance.collection('workers').add({
+        await _firestoreInstance.collection('workers').add({
           'id': user.user.uid,
           'name': userData['name'],
           'address': userData['address'],
@@ -169,13 +174,13 @@ class UserModel extends ConnectedModels {
           'adminOrUser': userData['adminOrUser'],
           'rights': userData['rights'],
           'email': userData['email'],
-          'imageUrl': uploadImageResult['imageUrl']
+          'imageUrl': uploadImageResult['imageUrl'],
         }).catchError((error) {
           hasError = true;
           responseMessage = error;
         });
       } else {
-        await firestoreInstance.collection('workers').add({
+        await _firestoreInstance.collection('workers').add({
           'id': user.user.uid,
           'name': userData['name'],
           'address': userData['address'],
@@ -184,7 +189,7 @@ class UserModel extends ConnectedModels {
           'adminOrUser': userData['adminOrUser'],
           'rights': userData['rights'],
           'email': userData['email'],
-          'imageUrl': null
+          'imageUrl': null,
         }).catchError((error) {
           hasError = true;
           responseMessage = error;
@@ -200,40 +205,88 @@ class UserModel extends ConnectedModels {
 
   Future<Map<String, dynamic>> updateUser(
       String id, Map<String, dynamic> userData) async {
-    // _isLoading = true;
-    // notifyListeners();
+    _isLoading = true;
+    notifyListeners();
 
-    // bool hasError = false;
-    // String responseMessage = 'Something went wrong.';
+    bool hasError = false;
+    String responseMessage = 'Something went wrong.';
 
-    // AuthResult user = await _firebaseAuth
-    //     .signInWithEmailAndPassword(email: email.trim(), password: password)
-    //     .catchError((error) {
-    //       hasError = true;
-    //   // error.code => exmpl. ERROR_USER_NOT_FOUND, error.message => Human readable error
-    //   if (error.code == 'ERROR_INVALID_EMAIL' || error.code == 'ERROR_WRONG_PASSWORD') {
-    //     responseMessage = 'Invalid e-mail or password.';
-    //   } else if (error.code == 'ERROR_USER_DISABLED') {
-    //     responseMessage = 'User account has been disabled.';
-    //   } else if (error.code == 'ERROR_USER_NOT_FOUND') {
-    //     responseMessage = 'User not found.';
-    //   } else if (error.code == 'ERROR_TOO_MANY_REQUESTS') {
-    //     responseMessage = 'There was too many unsuccessfull attempts to sign in.';
-    //   } else if (error.code == 'ERROR_OPERATION_NOT_ALLOWED') {
-    //     responseMessage = 'E-mail & password sign is disabled.';
-    //   }
-    // });
+    String imageUrl;
 
-    // _authenticatedUser = User(
-    //   email: user.user.email,
-    //   id: user.user.uid,
-    //   token: (await user.user.getIdToken()).token
-    // );
+    try {
+      if (userData['imageFile'] != null) {
+        Map<String, dynamic> uploadResult = await uploadImage(
+            userData['name'] + "_image", userData['imageFile']);
 
-    // _isLoading = false;
-    // notifyListeners();
+        if (uploadResult['success']) {
+          imageUrl = uploadResult['imageUrl'];
+        } else {
+          hasError = true;
+          responseMessage = uploadResult['error'];
+          _isLoading = false;
+          notifyListeners();
+        }
+      }
 
-    // return {'success': !hasError, 'message': responseMessage};
+      if (imageUrl == null) {
+        await _firestoreInstance.collection('workers').document(id).updateData({
+          'name': userData['name'],
+          'address': userData['address'],
+          'adminOrUser': userData['adminOrUser'],
+          'phone': userData['phone'],
+          'sector': userData['sector'],
+          'rights': userData['rights'],
+        });
+      } else {
+        await _firestoreInstance.collection('workers').document(id).updateData({
+          'name': userData['name'],
+          'address': userData['address'],
+          'adminOrUser': userData['adminOrUser'],
+          'phone': userData['phone'],
+          'sector': userData['sector'],
+          'rights': userData['rights'],
+          'imageUrl': imageUrl
+        });
+      }
+    } catch (e) {
+      _isLoading = true;
+      notifyListeners();
+
+      return {'success': !hasError, 'message': e.message};
+    }
+
+    _isLoading = false;
+    notifyListeners();
+
+    return {'success': !hasError, 'message': responseMessage};
+  }
+
+  Future<Map<String, dynamic>> deleteUser(String id,
+      [String name, String imageUrl]) async {
+    bool successfullUpdate = true;
+    String errorMessage = "";
+
+    if (name != null && imageUrl != null) {
+      await _firebaseStorage
+          .ref()
+          .child(name + "_image" + extension(imageUrl).split('?')[0])
+          .delete()
+          .catchError((error) {
+        successfullUpdate = false;
+        errorMessage = error;
+      });
+    }
+
+    await _firestoreInstance
+        .collection('workers')
+        .document(id)
+        .delete()
+        .catchError((error) {
+      successfullUpdate = false;
+      errorMessage = error;
+    });
+
+    return {'success': successfullUpdate, 'error': errorMessage};
   }
 }
 
@@ -245,13 +298,13 @@ class RightsModel extends ConnectedModels {
   }
 
   Stream<QuerySnapshot> getRightsFirestoreStream() {
-    return firestoreInstance.collection('rights').orderBy('order').snapshots();
+    return _firestoreInstance.collection('rights').orderBy('order').snapshots();
   }
 
   Future<bool> fetchRights() async {
     _isLoading = true;
     notifyListeners();
-    var responseRightsDocuments = await firestoreInstance
+    var responseRightsDocuments = await _firestoreInstance
         .collection('rights')
         .orderBy('order')
         .getDocuments();
@@ -287,7 +340,7 @@ class SectorModel extends ConnectedModels {
   }
 
   Stream<QuerySnapshot> getSectorsFirestoreStream() {
-    return firestoreInstance.collection('sectors').orderBy('name').snapshots();
+    return _firestoreInstance.collection('sectors').orderBy('name').snapshots();
   }
 
   Future<Map<String, dynamic>> addSector(
@@ -298,7 +351,7 @@ class SectorModel extends ConnectedModels {
     bool successfullAdd = true;
     String errorMessage = "";
 
-    await firestoreInstance
+    await _firestoreInstance
         .collection('sectors')
         .add({'name': name, 'description': description}).catchError((error) {
       successfullAdd = false;
@@ -318,7 +371,7 @@ class SectorModel extends ConnectedModels {
     bool successfullUpdate = true;
     String errorMessage = "";
 
-    await firestoreInstance.collection('sectors').document(id).setData(
+    await _firestoreInstance.collection('sectors').document(id).updateData(
         {'name': name, 'description': description}).catchError((error) {
       successfullUpdate = false;
       errorMessage = error;
@@ -333,7 +386,7 @@ class SectorModel extends ConnectedModels {
     bool successfullUpdate = true;
     String errorMessage = "";
 
-    await firestoreInstance
+    await _firestoreInstance
         .collection('sectors')
         .document(id)
         .delete()
@@ -347,7 +400,7 @@ class SectorModel extends ConnectedModels {
   Future<bool> fetchSectors() async {
     _isLoading = true;
     notifyListeners();
-    var responseSectorsDocuments = await firestoreInstance
+    var responseSectorsDocuments = await _firestoreInstance
         .collection('sectors')
         .orderBy('name')
         .getDocuments();

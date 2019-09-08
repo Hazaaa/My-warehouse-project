@@ -23,17 +23,6 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   final MainModel _model = MainModel();
-  Brightness _themeBrightness = Brightness.light;
-
-  void _changeThemeBrightness() {
-    setState(() {
-      if (_themeBrightness == Brightness.light) {
-        _themeBrightness = Brightness.dark;
-      } else {
-        _themeBrightness = Brightness.light;
-      }
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +31,7 @@ class _MyAppState extends State<MyApp> {
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
-            brightness: _themeBrightness,
+            brightness: Brightness.light,
             primarySwatch: Colors.blue,
             accentColor: Colors.white,
             fontFamily: "Poppins"),
