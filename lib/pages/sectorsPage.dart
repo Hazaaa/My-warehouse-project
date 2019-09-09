@@ -61,7 +61,11 @@ class _SectorsPageState extends State<SectorsPage> {
                             color: Theme.of(context).accentColor,
                             fontSize: 20.0),
                         backgroundColor: Theme.of(context).primaryColor,
-                        title: Center(child: Icon(Icons.delete_forever)),
+                        title: Center(
+                            child: Icon(
+                          Icons.delete_forever,
+                          color: Theme.of(context).accentColor,
+                        )),
                         content: Text("Are you sure you want to delete '" +
                             document['name'] +
                             "' sector?"),
@@ -116,13 +120,27 @@ class _SectorsPageState extends State<SectorsPage> {
                     mainAxisAlignment: MainAxisAlignment.center),
               );
             } else {
-              return Expanded(
-                  child: ListView.builder(
-                      itemCount: snapshot.data.documents.length,
-                      itemBuilder: (context, index) => _buildSectorListTile(
-                          snapshot.data.documents[index],
-                          model.sectorSearch,
-                          model)));
+              if (snapshot.data.documents.isEmpty) {
+                return Container(
+                  padding: EdgeInsets.only(top: 15.0),
+                  child: Center(
+                      child: Text(
+                    "No reports",
+                    style: TextStyle(
+                        color: Theme.of(context).accentColor,
+                        fontSize: 18.0,
+                        fontWeight: FontWeight.bold),
+                  )),
+                );
+              } else {
+                return Expanded(
+                    child: ListView.builder(
+                        itemCount: snapshot.data.documents.length,
+                        itemBuilder: (context, index) => _buildSectorListTile(
+                            snapshot.data.documents[index],
+                            model.sectorSearch,
+                            model)));
+              }
             }
           },
         );

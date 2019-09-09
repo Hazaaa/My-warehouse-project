@@ -55,6 +55,8 @@ class _MainPageState extends State<MainPage> {
             automaticallyImplyLeading: false,
           ),
           SizedBox(height: 10.0),
+          ListTile(leading: Icon(Icons.transit_enterexit), title: Text('New shipment')),
+          Divider(),
           ListTile(
               leading: Icon(Icons.add_shopping_cart),
               title: Text('Add new product')),
@@ -99,7 +101,10 @@ class _MainPageState extends State<MainPage> {
           ListTile(leading: Icon(Icons.bug_report), title: Text('Analytics')),
           Divider(),
           ListTile(
-              leading: Icon(Icons.power_settings_new), title: Text('Logout')),
+              leading: Icon(Icons.power_settings_new), title: Text('Logout'), onTap: () {
+                widget.model.signOut();
+                Navigator.of(context).pushReplacementNamed('/');
+              },),
         ],
       ),
     ));

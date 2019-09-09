@@ -25,7 +25,8 @@ class _WorkersPageState extends State<WorkersPage> {
         child: Row(
           children: <Widget>[
             ClipRRect(
-              child: (document['imageUrl'] != "" && document['imageUrl'] != null)
+              child: (document['imageUrl'] != "" &&
+                      document['imageUrl'] != null)
                   ? FadeInImage(
                       fit: BoxFit.cover,
                       height: 55.0,
@@ -63,7 +64,9 @@ class _WorkersPageState extends State<WorkersPage> {
                   email: document['email'],
                   imageUrl: document['imageUrl'],
                   phone: document['phone'],
-                  rights: (document['rights'] == null) ? [] : document['rights'].cast<String>(),
+                  rights: (document['rights'] == null)
+                      ? []
+                      : document['rights'].cast<String>(),
                   sector: document['sector'],
                 );
                 Navigator.pushReplacement(
@@ -89,7 +92,11 @@ class _WorkersPageState extends State<WorkersPage> {
                             color: Theme.of(context).accentColor,
                             fontSize: 20.0),
                         backgroundColor: Theme.of(context).primaryColor,
-                        title: Center(child: Icon(Icons.delete_forever, color: Colors.white,)),
+                        title: Center(
+                            child: Icon(
+                          Icons.delete_forever,
+                          color: Colors.white,
+                        )),
                         content: Text(
                             "Are you sure you want to permently delete worker '${document['name']}' ?"),
                         actions: <Widget>[
@@ -113,10 +120,11 @@ class _WorkersPageState extends State<WorkersPage> {
                             ),
                             onPressed: () {
                               setState(() {
-                                if(document['imageUrl'] != null && document['imageUrl'] != "") {
-                                  model.deleteUser(document.documentID, document['name'], document['imageUrl']);
-                                }
-                                else {
+                                if (document['imageUrl'] != null &&
+                                    document['imageUrl'] != "") {
+                                  model.deleteUser(document.documentID,
+                                      document['name'], document['imageUrl']);
+                                } else {
                                   model.deleteUser(document.documentID);
                                 }
                                 Navigator.of(context).pop();
@@ -148,11 +156,25 @@ class _WorkersPageState extends State<WorkersPage> {
                     mainAxisAlignment: MainAxisAlignment.center),
               );
             } else {
-              return Expanded(
-                  child: ListView.builder(
-                      itemCount: snapshot.data.documents.length,
-                      itemBuilder: (context, index) => _buildWorkerListTile(
-                          snapshot.data.documents[index], model)));
+              if (snapshot.data.documents.isEmpty) {
+                return Container(
+                  padding: EdgeInsets.only(top: 15.0),
+                  child: Center(
+                      child: Text(
+                    "No reports",
+                    style: TextStyle(
+                        color: Theme.of(context).accentColor,
+                        fontSize: 18.0,
+                        fontWeight: FontWeight.bold),
+                  )),
+                );
+              } else {
+                return Expanded(
+                    child: ListView.builder(
+                        itemCount: snapshot.data.documents.length,
+                        itemBuilder: (context, index) => _buildWorkerListTile(
+                            snapshot.data.documents[index], model)));
+              }
             }
           },
         );

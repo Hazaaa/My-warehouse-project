@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/services.dart';
 import 'package:path/path.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -57,13 +58,21 @@ class UserModel extends ConnectedModels {
     return _firestoreInstance.collection('workers').orderBy('name').snapshots();
   }
 
-  void getAdditionalUserInfo() async {
-    if (_authenticatedUser.id != null && !_authenticatedUser.email.contains("admin")) {
+  Future<bool> getAdditionalUserInfo() async {
+    if (_authenticatedUser.id != null &&
+        !_authenticatedUser.email.contains("admin")) {
       QuerySnapshot response = await _firestoreInstance
-          .collection('workers').where("id", isEqualTo: _authenticatedUser.id)
+          .collection('workers')
+          .where("id", isEqualTo: _authenticatedUser.id)
           .getDocuments();
 
       DocumentSnapshot document = response.documents.single;
+
+      if (document.data == null) {
+        print(document.data);
+        print(_authenticatedUser.email);
+        return false;
+      }
 
       _authenticatedUser.address = document['address'];
       _authenticatedUser.adminOrUser = document['adminOrUser'];
@@ -71,7 +80,11 @@ class UserModel extends ConnectedModels {
       _authenticatedUser.name = document['name'];
       _authenticatedUser.rights = document['rights'].cast<String>();
       _authenticatedUser.phone = document['phone'];
-      _authenticatedUser.sector = document['sector'];    
+      _authenticatedUser.sector = document['sector'];
+
+      return true;
+    } else {
+      return false;
     }
   }
 
@@ -113,7 +126,14 @@ class UserModel extends ConnectedModels {
           id: user.user.uid,
           token: (await user.user.getIdToken()).token);
 
-      await getAdditionalUserInfo();
+      bool gotAditionalInfo = await getAdditionalUserInfo();
+      if (!gotAditionalInfo && !_authenticatedUser.email.contains("admin")) {
+        _firebaseAuth.signOut();
+        hasError = true;
+        responseMessage = 'User not found.';
+        _isLoading = false;
+        notifyListeners();
+      }
 
       _isLoading = false;
       notifyListeners();
@@ -148,6 +168,11 @@ class UserModel extends ConnectedModels {
     // _isLoading = false;
     // notifyListeners();
     // return {'success': !hasError, 'message': responseMessage};
+  }
+
+  void signOut() async {
+    await _firebaseAuth.signOut();
+    _authenticatedUser = null;
   }
 
   Future<Map<String, dynamic>> addNewUser(Map<String, dynamic> userData) async {
@@ -313,15 +338,12 @@ class UserModel extends ConnectedModels {
 class ProductModel extends ConnectedModels {}
 
 class RightsModel extends ConnectedModels {
-  List<Right> get getRights {
-    return List<Right>.from(_rights);
-  }
 
   Stream<QuerySnapshot> getRightsFirestoreStream() {
     return _firestoreInstance.collection('rights').orderBy('order').snapshots();
   }
 
-  Future<bool> fetchRights() async {
+  Future<List<Right>> fetchRights() async {
     _isLoading = true;
     notifyListeners();
     var responseRightsDocuments = await _firestoreInstance
@@ -332,7 +354,7 @@ class RightsModel extends ConnectedModels {
     if (responseRightsDocuments.documents.length == 0) {
       _isLoading = false;
       notifyListeners();
-      return false;
+      return null;
     }
     List<Right> tempRightsList = [];
     for (var i = 0; i < responseRightsDocuments.documents.length; i++) {
@@ -342,10 +364,9 @@ class RightsModel extends ConnectedModels {
           order: responseRightsDocuments.documents[i].data['order']);
       tempRightsList.add(newRight);
     }
-    _rights = tempRightsList;
     _isLoading = false;
     notifyListeners();
-    return true;
+    return tempRightsList;
   }
 }
 
@@ -447,8 +468,25 @@ class SectorModel extends ConnectedModels {
 }
 
 class ReportModel extends ConnectedModels {
-  String formatDate(DateTime date) {
-    return "${date.day}.${date.month}.${date.year}. ${date.hour}:${date.minute}";
+
+  Stream<QuerySnapshot> getReportsStream() {
+    return _firestoreInstance.collection('reports').orderBy('time', descending: true).snapshots();
+  }
+
+  Future<Map<String, dynamic>> deleteReport(String id) async {
+    bool successfullUpdate = true;
+    String errorMessage = "";
+
+    await _firestoreInstance
+        .collection('reports')
+        .document(id)
+        .delete()
+        .catchError((PlatformException error) {
+      successfullUpdate = false;
+      errorMessage = error.message;
+    });
+
+    return {'success': successfullUpdate, 'error': errorMessage};
   }
 
   Future<Map<String, dynamic>> addNewReport(String reportText) async {
@@ -461,7 +499,7 @@ class ReportModel extends ConnectedModels {
     await _firestoreInstance.collection('reports').add({
       'userReported': _authenticatedUser.name,
       'description': reportText.trim(),
-      'time': formatDate(DateTime.now())
+      'time': Timestamp.now()
     }).catchError((error) {
       successfullAdd = false;
       errorMessage = error;
@@ -474,6 +512,11 @@ class ReportModel extends ConnectedModels {
 }
 
 class UtilityModel extends ConnectedModels {
+
+  String formatDate(DateTime date) {
+    return "${date.day}.${date.month}.${date.year} ${date.hour}:${date.minute}:${date.second}";
+  }
+
   bool get isLoading {
     return _isLoading;
   }
