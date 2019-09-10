@@ -6,6 +6,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:scoped_model/scoped_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+// Mine classes
 import 'package:mywarehouseproject/models/user.dart';
 import 'package:mywarehouseproject/models/right.dart';
 import 'package:mywarehouseproject/models/sector.dart';
@@ -17,7 +18,6 @@ class ConnectedModels extends Model {
 
   User _authenticatedUser;
   bool _isLoading = false;
-  List<Right> _rights;
   List<Sector> _sectors;
   String sectorSearch = "";
 }
@@ -59,8 +59,7 @@ class UserModel extends ConnectedModels {
   }
 
   Future<bool> getAdditionalUserInfo() async {
-    if (_authenticatedUser.id != null &&
-        !_authenticatedUser.email.contains("admin")) {
+    if (_authenticatedUser.id != null) {
       QuerySnapshot response = await _firestoreInstance
           .collection('workers')
           .where("id", isEqualTo: _authenticatedUser.id)
@@ -78,7 +77,7 @@ class UserModel extends ConnectedModels {
       _authenticatedUser.adminOrUser = document['adminOrUser'];
       _authenticatedUser.imageUrl = document['imageUrl'];
       _authenticatedUser.name = document['name'];
-      _authenticatedUser.rights = document['rights'].cast<String>();
+      _authenticatedUser.rights = document['rights'] != null ? document['rights'].cast<String>() : null;
       _authenticatedUser.phone = document['phone'];
       _authenticatedUser.sector = document['sector'];
 
@@ -127,7 +126,7 @@ class UserModel extends ConnectedModels {
           token: (await user.user.getIdToken()).token);
 
       bool gotAditionalInfo = await getAdditionalUserInfo();
-      if (!gotAditionalInfo && !_authenticatedUser.email.contains("admin")) {
+      if (!gotAditionalInfo) {
         _firebaseAuth.signOut();
         hasError = true;
         responseMessage = 'User not found.';

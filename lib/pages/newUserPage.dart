@@ -470,14 +470,12 @@ class _NewUserPageState extends State<NewUserPage> {
     );
   }
 
-  void _getImage(BuildContext context, ImageSource source) {
-    ImagePicker.pickImage(source: source, maxWidth: 500.0, maxHeight: 500.0)
-        .then((File image) {
-      setState(() {
-        _imageFile = image;
-      });
-      Navigator.pop(context);
+  void _getImage(BuildContext context, ImageSource source) async {
+    File image = await ImagePicker.pickImage(source: source);
+    setState(() {
+      _imageFile = image;
     });
+    Navigator.pop(context);
   }
 
   void _openImagePicker(BuildContext context) {
@@ -486,7 +484,7 @@ class _NewUserPageState extends State<NewUserPage> {
         context: context,
         builder: (BuildContext context) {
           return Container(
-            height: 170.0,
+            height: 115.0,
             padding: EdgeInsets.all(10.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -499,17 +497,17 @@ class _NewUserPageState extends State<NewUserPage> {
                       fontWeight: FontWeight.bold),
                 ),
                 Divider(),
-                FlatButton.icon(
-                  textColor: Theme.of(context).accentColor,
-                  label: Text("Use Camera"),
-                  icon: Icon(Icons.add_a_photo),
-                  onPressed: () {
-                    _getImage(context, ImageSource.camera);
-                  },
-                ),
-                SizedBox(
-                  height: 5.0,
-                ),
+                // FlatButton.icon(
+                //   textColor: Theme.of(context).accentColor,
+                //   label: Text("Use Camera"),
+                //   icon: Icon(Icons.add_a_photo),
+                //   onPressed: () {
+                //     _getImage(context, ImageSource.camera);
+                //   },
+                // ),
+                // SizedBox(
+                //   height: 5.0,
+                // ),
                 FlatButton.icon(
                   textColor: Theme.of(context).accentColor,
                   label: Text("Choose from Gallery"),
@@ -525,6 +523,9 @@ class _NewUserPageState extends State<NewUserPage> {
   }
 
   void _submitNewUser(Function addNewUser) async {
+    setState(() {
+      Navigator.of(context).pop();
+    });
     final Map<String, dynamic> addUserResponse = await addNewUser(_formData);
 
     setState(() {
@@ -538,6 +539,9 @@ class _NewUserPageState extends State<NewUserPage> {
   }
 
   void _submitEditUser(Function updateUser) async {
+    setState(() {
+      Navigator.of(context).pop();
+    });
     final Map<String, dynamic> updateSectorResponse =
         await updateUser(widget.userForUpadte.id, _formData);
 
