@@ -27,6 +27,22 @@ class UserModel extends ConnectedModels {
     return _authenticatedUser;
   }
 
+  Future<bool> checkInternetConnection() async {
+    try {
+      final result = await InternetAddress.lookup('google.com');
+      if (!result.isNotEmpty && !result[0].rawAddress.isNotEmpty) {
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+    } on SocketException catch (_) {
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+    return true;
+  }
+
   Future<FirebaseUser> getCurrentUser() async {
     FirebaseUser user = await _firebaseAuth.currentUser();
     return user;
@@ -77,7 +93,8 @@ class UserModel extends ConnectedModels {
       _authenticatedUser.adminOrUser = document['adminOrUser'];
       _authenticatedUser.imageUrl = document['imageUrl'];
       _authenticatedUser.name = document['name'];
-      _authenticatedUser.rights = document['rights'] != null ? document['rights'].cast<String>() : null;
+      _authenticatedUser.rights =
+          document['rights'] != null ? document['rights'].cast<String>() : null;
       _authenticatedUser.phone = document['phone'];
       _authenticatedUser.sector = document['sector'];
 
@@ -90,6 +107,14 @@ class UserModel extends ConnectedModels {
   Future<Map<String, dynamic>> login(String email, String password) async {
     _isLoading = true;
     notifyListeners();
+
+    bool connectedToInternet = await checkInternetConnection();
+
+    if (!connectedToInternet) {
+      _isLoading = false;
+      notifyListeners();
+      return {'success': false, 'message': "No internet connection."};
+    }
 
     bool hasError = false;
     String responseMessage = 'Something went wrong.';
@@ -337,7 +362,6 @@ class UserModel extends ConnectedModels {
 class ProductModel extends ConnectedModels {}
 
 class RightsModel extends ConnectedModels {
-
   Stream<QuerySnapshot> getRightsFirestoreStream() {
     return _firestoreInstance.collection('rights').orderBy('order').snapshots();
   }
@@ -379,6 +403,16 @@ class SectorModel extends ConnectedModels {
     notifyListeners();
   }
 
+  Future<String> getSectorNameById(String sectorId) async {
+    DocumentSnapshot document = await _firestoreInstance.collection('sectors').document(sectorId).get();
+    if(document != null){
+      return document.data['name'];
+    }
+    else {
+      return null;
+    }
+  }
+
   Stream<QuerySnapshot> getSectorsFirestoreStream() {
     return _firestoreInstance.collection('sectors').orderBy('name').snapshots();
   }
@@ -404,7 +438,7 @@ class SectorModel extends ConnectedModels {
   }
 
   Future<Map<String, dynamic>> updateSector(
-      String id, String name, String description) async {
+      String id, String oldName, String newName, String description) async {
     _isLoading = true;
     notifyListeners();
 
@@ -412,9 +446,12 @@ class SectorModel extends ConnectedModels {
     String errorMessage = "";
 
     await _firestoreInstance.collection('sectors').document(id).updateData(
-        {'name': name, 'description': description}).catchError((error) {
+        {'name': newName, 'description': description}).catchError((error) {
       successfullUpdate = false;
       errorMessage = error;
+      _isLoading = false;
+      notifyListeners();
+      return {'success': successfullUpdate, 'error': errorMessage};
     });
 
     _isLoading = false;
@@ -467,9 +504,11 @@ class SectorModel extends ConnectedModels {
 }
 
 class ReportModel extends ConnectedModels {
-
   Stream<QuerySnapshot> getReportsStream() {
-    return _firestoreInstance.collection('reports').orderBy('time', descending: true).snapshots();
+    return _firestoreInstance
+        .collection('reports')
+        .orderBy('time', descending: true)
+        .snapshots();
   }
 
   Future<Map<String, dynamic>> deleteReport(String id) async {
@@ -511,7 +550,6 @@ class ReportModel extends ConnectedModels {
 }
 
 class UtilityModel extends ConnectedModels {
-
   String formatDate(DateTime date) {
     return "${date.day}.${date.month}.${date.year} ${date.hour}:${date.minute}:${date.second}";
   }

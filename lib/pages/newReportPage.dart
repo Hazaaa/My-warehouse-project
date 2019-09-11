@@ -12,6 +12,13 @@ class NewReportPage extends StatefulWidget {
 }
 
 class _NewReportPageState extends State<NewReportPage> {
+
+  @override
+  void dispose() {
+    _nameTextController.dispose();
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();

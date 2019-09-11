@@ -175,6 +175,7 @@ class _NewSectorPageState extends State<NewSectorPage> {
   void _submitEditSector(Function updateSector) async {
     final Map<String, dynamic> updateSectorResponse = await updateSector(
         widget.updateSector.id,
+        widget.updateSector.name,
         _nameTextController.text,
         _descriptionTextController.text);
 

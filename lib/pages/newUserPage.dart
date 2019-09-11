@@ -40,6 +40,12 @@ class _NewUserPageState extends State<NewUserPage> {
   File _imageFile;
 
   @override
+  void dispose() {
+    _nameTextController.dispose();
+    super.dispose();
+  }
+
+  @override
   initState() {
     isUserForEdit ? selectedRights = widget.userForUpadte.rights : [];
     isUserForEdit ? _nameTextController.text = widget.userForUpadte.name : "";
@@ -220,7 +226,7 @@ class _NewUserPageState extends State<NewUserPage> {
             sectorsList.add(
               DropdownMenuItem(
                 child: Text(document['name']),
-                value: document['name'],
+                value: document.documentID,
               ),
             );
           }
