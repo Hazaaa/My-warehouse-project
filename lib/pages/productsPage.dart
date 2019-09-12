@@ -1,21 +1,20 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:mywarehouseproject/custom_widgets/logoAppBar.dart';
-import 'package:mywarehouseproject/models/sector.dart';
-import 'package:mywarehouseproject/pages/newSectorPage.dart';
+import 'package:mywarehouseproject/models/product.dart';
+import 'package:mywarehouseproject/pages/newProductPage.dart';
 import 'package:mywarehouseproject/scoped_models/mainModel.dart';
 import 'package:scoped_model/scoped_model.dart';
 
-class SectorsPage extends StatefulWidget {
+class ProductsPage extends StatefulWidget {
   @override
   State<StatefulWidget> createState() {
-    return _SectorsPageState();
+    return _ProductsPageState();
   }
 }
 
-class _SectorsPageState extends State<SectorsPage> {
-  Widget _buildSectorListTile(
-      DocumentSnapshot document, MainModel model) {
+class _ProductsPageState extends State<ProductsPage> {
+  Widget _buildProductListTile(DocumentSnapshot document, MainModel model) {
     return ListTile(
       title: Container(
         padding: EdgeInsets.all(15.0),
@@ -25,6 +24,24 @@ class _SectorsPageState extends State<SectorsPage> {
         ),
         child: Row(
           children: <Widget>[
+            (document['imageUrl'] != "" && document['imageUrl'] != null)
+                ? FadeInImage(
+                    fit: BoxFit.cover,
+                    height: 55.0,
+                    width: 55.0,
+                    image: NetworkImage(document['imageUrl']),
+                    placeholder:
+                        AssetImage('assets/Images/default-product-picture.jpg'),
+                  )
+                : Image.asset(
+                    'assets/Images/default-product-picture.jpg',
+                    fit: BoxFit.cover,
+                    height: 55.0,
+                    width: 55.0,
+                  ),
+            SizedBox(
+              width: 15.0,
+            ),
             Expanded(
               child: Text(
                 document['name'],
@@ -34,15 +51,22 @@ class _SectorsPageState extends State<SectorsPage> {
             GestureDetector(
               child: Icon(Icons.edit, color: Theme.of(context).accentColor),
               onTap: () {
-                Sector editSector = Sector(
-                    id: document.documentID,
-                    name: document['name'],
-                    description: document['description']);
+                // Make user and send to newUserPage
+                Product editUser = Product(
+                  id: document.documentID,
+                  name: document['name'],
+                  description: document['description'],
+                  whereIsStored: document['whereIsStored'],
+                  measurementUnit: document['measurementUnit'],
+                  quantity: int.parse(document['quantity']),
+                  barcode: document['barcode'],
+                  imageUrl: document['imageUrl'],
+                );
                 Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
                         builder: (BuildContext context) =>
-                            NewSectorPage(editSector)));
+                            NewProductPage(model, editUser)));
               },
             ),
             SizedBox(width: 20.0),
@@ -64,11 +88,10 @@ class _SectorsPageState extends State<SectorsPage> {
                         title: Center(
                             child: Icon(
                           Icons.delete_forever,
-                          color: Theme.of(context).accentColor,
+                          color: Colors.white,
                         )),
-                        content: Text("Are you sure you want to delete '" +
-                            document['name'] +
-                            "' sector?"),
+                        content: Text(
+                            "Are you sure you want to permently delete product '${document['name']}' ?"),
                         actions: <Widget>[
                           FlatButton(
                             child: Text(
@@ -90,7 +113,13 @@ class _SectorsPageState extends State<SectorsPage> {
                             ),
                             onPressed: () {
                               setState(() {
-                                model.deleteSector(document.documentID);
+                                if (document['imageUrl'] != null &&
+                                    document['imageUrl'] != "") {
+                                  model.deleteProduct(document.documentID,
+                                      document['name'], document['imageUrl']);
+                                } else {
+                                  model.deleteProduct(document.documentID);
+                                }
                                 Navigator.of(context).pop();
                               });
                             },
@@ -106,11 +135,11 @@ class _SectorsPageState extends State<SectorsPage> {
     );
   }
 
-  Widget _buildSectorsList() {
+  Widget _buildProductsList() {
     return ScopedModelDescendant(
       builder: (BuildContext context, Widget child, MainModel model) {
         return StreamBuilder(
-          stream: model.getSectorsFirestoreStream(),
+          stream: model.getProductsStream(),
           builder: (context, snapshot) {
             if (!snapshot.hasData) {
               return Center(
@@ -125,7 +154,7 @@ class _SectorsPageState extends State<SectorsPage> {
                   padding: EdgeInsets.only(top: 15.0),
                   child: Center(
                       child: Text(
-                    "No reports",
+                    "No products",
                     style: TextStyle(
                         color: Theme.of(context).accentColor,
                         fontSize: 18.0,
@@ -136,9 +165,8 @@ class _SectorsPageState extends State<SectorsPage> {
                 return Expanded(
                     child: ListView.builder(
                         itemCount: snapshot.data.documents.length,
-                        itemBuilder: (context, index) => _buildSectorListTile(
-                            snapshot.data.documents[index],
-                            model)));
+                        itemBuilder: (context, index) => _buildProductListTile(
+                            snapshot.data.documents[index], model)));
               }
             }
           },
@@ -159,7 +187,7 @@ class _SectorsPageState extends State<SectorsPage> {
               focusColor: Colors.white,
               disabledBorder: InputBorder.none,
               border: InputBorder.none,
-              labelText: "Search sector",
+              labelText: "Search for product",
               labelStyle: TextStyle(color: Colors.white),
               prefixIcon: Icon(
                 Icons.search,
@@ -167,9 +195,7 @@ class _SectorsPageState extends State<SectorsPage> {
               ),
             ),
             onChanged: (String typed) {
-              setState(() {
-                
-              });
+              setState(() {});
             },
           ),
         );
@@ -182,7 +208,7 @@ class _SectorsPageState extends State<SectorsPage> {
       children: <Widget>[
         _buildSearchEngine(),
         Divider(),
-        _buildSectorsList(),
+        _buildProductsList(),
       ],
     );
   }

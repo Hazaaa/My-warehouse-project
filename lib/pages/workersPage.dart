@@ -73,7 +73,7 @@ class _WorkersPageState extends State<WorkersPage> {
                     context,
                     MaterialPageRoute(
                         builder: (BuildContext context) =>
-                            NewUserPage(editUser, model)));
+                            NewUserPage(model,editUser)));
               },
             ),
             SizedBox(width: 20.0),
@@ -203,7 +203,7 @@ class _WorkersPageState extends State<WorkersPage> {
             ),
             onChanged: (String typed) {
               setState(() {
-                model.setSectorSearch(typed);
+                
               });
             },
           ),

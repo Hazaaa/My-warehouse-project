@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:mywarehouseproject/pages/reportsPage.dart';
 import 'package:scoped_model/scoped_model.dart';
 
 // Mine
@@ -11,6 +10,9 @@ import 'package:mywarehouseproject/pages/newUserPage.dart';
 import 'package:mywarehouseproject/pages/sectorsPage.dart';
 import 'package:mywarehouseproject/pages/newReportPage.dart';
 import 'package:mywarehouseproject/pages/workersPage.dart';
+import 'package:mywarehouseproject/pages/newProductPage.dart';
+import 'package:mywarehouseproject/pages/productsPage.dart';
+import 'package:mywarehouseproject/pages/reportsPage.dart';
 
 void main() {
   runApp(MyApp());
@@ -40,30 +42,15 @@ class _MyAppState extends State<MyApp> {
         routes: {
           '/': (BuildContext context) => LoginPage(),
           '/main': (BuildContext context) => MainPage(_model),
-          '/newUser': (BuildContext context) => NewUserPage(null, _model),
+          '/newUser': (BuildContext context) => NewUserPage(_model,null),
           '/newSector': (BuildContext context) => NewSectorPage(),
           '/newReport': (BuildContext context) => NewReportPage(),
+          '/newProduct': (BuildContext context) => NewProductPage(_model, null),
           '/sectors': (BuildContext context) => SectorsPage(),
           '/workers': (BuildContext context) => WorkersPage(),
-          '/reports': (BuildContext context) => ReportsPage()
+          '/reports': (BuildContext context) => ReportsPage(),
+          '/products': (BuildContext context) => ProductsPage()
         },
-        // onGenerateRoute: (RouteSettings settings) {
-        //   final List<String> pathElements = settings.name.split('/');
-        //   if (pathElements[0] != '') {
-        //     return null;
-        //   }
-        //   if (pathElements[1] == 'product') {
-        //     final int index = int.parse(pathElements[2]);
-        //     return MaterialPageRoute<bool>(
-        //       builder: (BuildContext context) => ProductPage(index),
-        //     );
-        //   }
-        //   return null;
-        // },
-        // onUnknownRoute: (RouteSettings settings) {
-        //   return MaterialPageRoute(
-        //       builder: (BuildContext context) => ProductsPage());
-        // },
       ),
     );
   }

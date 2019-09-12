@@ -32,6 +32,7 @@ dependencies:
   http: ^0.12.0+2
   grouped_buttons: ^1.0.4
   image_picker: ^0.4.5
+  barcode_flutter: ^1.0.1
 
 dev_dependencies:
   flutter_test:
@@ -55,6 +56,7 @@ flutter:
     - assets/logo-with-text.png
     - assets/icon.png
     - assets/Images/default-user-picture.png
+    - assets/Images/default-product-picture.jpg
   #  - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see

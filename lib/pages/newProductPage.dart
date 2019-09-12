@@ -1,75 +1,72 @@
 import 'dart:io';
+import 'package:barcode_flutter/barcode_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:grouped_buttons/grouped_buttons.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mywarehouseproject/custom_widgets/logoAppBar.dart';
 import 'package:mywarehouseproject/custom_widgets/yesNoAlertDialog.dart';
-import 'package:mywarehouseproject/models/user.dart';
+import 'package:mywarehouseproject/models/product.dart';
 import 'package:mywarehouseproject/scoped_models/mainModel.dart';
 
-class NewUserPage extends StatefulWidget {
+class NewProductPage extends StatefulWidget {
   final MainModel _model;
-  final User userForUpadte;
+  final Product productForUpdate;
 
-  NewUserPage(this._model, [this.userForUpadte]);
+  NewProductPage(this._model, [this.productForUpdate]);
 
   @override
   State<StatefulWidget> createState() {
-    return _NewUserPageState();
+    return _NewProductPageState();
   }
 }
 
-class _NewUserPageState extends State<NewUserPage> {
+class _NewProductPageState extends State<NewProductPage> {
   final TextEditingController _nameTextController = TextEditingController();
+  final TextEditingController _barcodeTextController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   Map<String, dynamic> _formData = {
     'name': null,
-    'address': null,
-    'phone': null,
-    'sector': null,
-    'adminOrUser': null,
-    'rights': null,
-    'email': null,
-    'password': null,
-    'imageFile': null
+    'description': null,
+    'quantity': null,
+    'measurementUnit': null,
+    'whereIsStored': null,
+    'imageFile': null,
+    'barcode': null
   };
-  List<String> selectedRights;
   String selectedSector;
-  String selectedAdminUser;
   File _imageFile;
+  String barcodeForShow;
 
   @override
   void dispose() {
     _nameTextController.dispose();
+    _barcodeTextController.dispose();
     super.dispose();
   }
 
   @override
   initState() {
-    isUserForEdit ? selectedRights = widget.userForUpadte.rights : [];
-    isUserForEdit ? _nameTextController.text = widget.userForUpadte.name : "";
-    isUserForEdit ? selectedAdminUser = widget.userForUpadte.adminOrUser : null;
+    isProductForEdit
+        ? barcodeForShow = widget.productForUpdate.barcode
+        : barcodeForShow = null;
+    isProductForEdit
+        ? _barcodeTextController.text = widget.productForUpdate.barcode
+        : "";
+    isProductForEdit
+        ? _nameTextController.text = widget.productForUpdate.name
+        : "";
     super.initState();
   }
 
-  bool get isUserForEdit {
-    if (widget.userForUpadte != null) {
+  bool get isProductForEdit {
+    if (widget.productForUpdate != null) {
       return true;
     } else {
       return false;
     }
   }
 
-  bool shouldShowRights() {
-    if (selectedAdminUser == null || selectedAdminUser == "Admin") {
-      return false;
-    } else {
-      return true;
-    }
-  }
-
-  Widget _buildNameAndSurenameTextField(BuildContext context) {
+  Widget _buildNameTextField(BuildContext context) {
     return Container(
       padding: EdgeInsets.only(left: 15.0, right: 15.0),
       child: TextFormField(
@@ -80,12 +77,12 @@ class _NewUserPageState extends State<NewUserPage> {
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10.0),
           ),
-          labelText: "Name and Surename",
-          prefixIcon: Icon(Icons.person),
+          labelText: "Product name",
+          prefixIcon: Icon(Icons.unarchive),
         ),
         validator: (String typed) {
-          if (typed.isEmpty || typed.length < 8) {
-            return "Name and Surename field shouldn't be empty and should be 8+ characters long.";
+          if (typed.isEmpty) {
+            return "Product name field shouldn't be empty.";
           }
           return null;
         },
@@ -96,113 +93,88 @@ class _NewUserPageState extends State<NewUserPage> {
     );
   }
 
-  Widget _buildAddressTextField(BuildContext context) {
+  Widget _buildDescriptionTextField(BuildContext context) {
     return Container(
       padding: EdgeInsets.only(left: 15.0, right: 15.0),
       child: TextFormField(
-        initialValue: isUserForEdit ? widget.userForUpadte.address : "",
+        keyboardType: TextInputType.multiline,
+        maxLines: null,
+        initialValue:
+            isProductForEdit ? widget.productForUpdate.description : "",
         cursorColor: Theme.of(context).primaryColor,
         decoration: InputDecoration(
           focusColor: Theme.of(context).primaryColor,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10.0),
           ),
-          labelText: "Address",
-          prefixIcon: Icon(Icons.home),
+          labelText: "More description [optional]",
+          prefixIcon: Icon(Icons.description),
         ),
         validator: (String typed) {
           if (typed.isEmpty) {
-            return "Address field shouldn't be empty.";
+            return "Product description field shouldn't be empty.";
           }
           return null;
         },
         onSaved: (String typed) {
-          _formData['address'] = typed;
+          _formData['description'] = typed;
         },
       ),
     );
   }
 
-  Widget _buildNumberTextField(BuildContext context) {
+  Widget _buildQuantityTextField(BuildContext context) {
     return Container(
       padding: EdgeInsets.only(left: 15.0, right: 15.0),
       child: TextFormField(
-        initialValue: isUserForEdit ? widget.userForUpadte.phone : "",
-        keyboardType: TextInputType.phone,
+        initialValue:
+            isProductForEdit ? widget.productForUpdate.quantity.toString() : "",
+        keyboardType: TextInputType.number,
         cursorColor: Theme.of(context).primaryColor,
         decoration: InputDecoration(
           focusColor: Theme.of(context).primaryColor,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10.0),
           ),
-          labelText: "Phone number",
-          prefixIcon: Icon(Icons.phone),
-        ),
-        validator: (String typed) {
-          if (typed.isEmpty || typed.length < 8) {
-            return "Phone number field shouldn't be empty and should be 8+ characters long.";
-          }
-          return null;
-        },
-        onSaved: (String typed) {
-          _formData['phone'] = typed;
-        },
-      ),
-    );
-  }
-
-  Widget _buildEmailTextField(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.only(left: 15.0, right: 15.0),
-      child: TextFormField(
-        keyboardType: TextInputType.emailAddress,
-        cursorColor: Theme.of(context).primaryColor,
-        decoration: InputDecoration(
-          focusColor: Theme.of(context).primaryColor,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10.0),
-          ),
-          labelText: "E-mail",
-          prefixIcon: Icon(Icons.email),
+          labelText: "Quantity",
+          prefixIcon: Icon(Icons.filter_9_plus),
         ),
         validator: (String typed) {
           if (typed.isEmpty) {
-            return "E-mail field shouldn't be empty.";
-          } else if (!RegExp(
-                  r"[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?")
-              .hasMatch(typed)) {
-            return "Entered e-mail is invalid.";
+            return "Quantity field shouldn't be empty or set at 0.";
           }
           return null;
         },
         onSaved: (String typed) {
-          _formData['email'] = typed;
+          _formData['quantity'] = typed;
         },
       ),
     );
   }
 
-  Widget _buildPasswordTextField(BuildContext context) {
+  Widget _buildMeasurementUnitTextField(BuildContext context) {
     return Container(
       padding: EdgeInsets.only(left: 15.0, right: 15.0),
       child: TextFormField(
+        initialValue:
+            isProductForEdit ? widget.productForUpdate.measurementUnit : "",
         cursorColor: Theme.of(context).primaryColor,
         decoration: InputDecoration(
           focusColor: Theme.of(context).primaryColor,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10.0),
           ),
-          labelText: "Password",
-          prefixIcon: Icon(Icons.vpn_key),
+          labelText: "Measurement unit",
+          prefixIcon: Icon(Icons.more),
         ),
         validator: (String typed) {
-          if (typed.isEmpty || typed.length < 8) {
-            return "Password field shouldn't be empty and and should be 8+ characters long.";
+          if (typed.isEmpty) {
+            return "Measurement unit field shouldn't be empty.";
           }
           return null;
         },
         onSaved: (String typed) {
-          _formData['password'] = typed;
+          _formData['measurementUnit'] = typed;
         },
       ),
     );
@@ -243,9 +215,9 @@ class _NewUserPageState extends State<NewUserPage> {
                   child: ButtonTheme(
                     alignedDropdown: true,
                     child: DropdownButton(
-                      hint: Text("Choose sector"),
-                      value: (isUserForEdit && selectedSector == null)
-                          ? widget.userForUpadte.sector
+                      hint: Text("Sector where is stored"),
+                      value: (isProductForEdit && selectedSector == null)
+                          ? widget.productForUpdate.whereIsStored
                           : selectedSector,
                       items: sectorsList,
                       onChanged: (sector) {
@@ -264,71 +236,6 @@ class _NewUserPageState extends State<NewUserPage> {
     );
   }
 
-  Widget _buildAdminUserPicker(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: <Widget>[
-        RadioButtonGroup(
-          picked: selectedAdminUser,
-          orientation: GroupedButtonsOrientation.HORIZONTAL,
-          padding: EdgeInsets.only(left: 50.0, right: 50.0),
-          labels: ["Admin", "User"],
-          activeColor: Theme.of(context).primaryColor,
-          onSelected: (String selected) {
-            setState(() {
-              selectedAdminUser = selected;
-            });
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRightsPicker() {
-    return StreamBuilder(
-        stream: widget._model.getRightsFirestoreStream(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return Center(
-              child: Column(
-                  children: <Widget>[CircularProgressIndicator()],
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  mainAxisAlignment: MainAxisAlignment.center),
-            );
-          } else {
-            List<String> rightsList = [];
-            for (var i = 0; i < snapshot.data.documents.length; i++) {
-              DocumentSnapshot document = snapshot.data.documents[i];
-              rightsList.add(document['name']);
-            }
-            return Visibility(
-              visible: shouldShowRights(),
-              child: Container(
-                padding: EdgeInsets.only(left: 15.0, right: 15.0),
-                child: Container(
-                  decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey),
-                      borderRadius: BorderRadius.circular(10.0)),
-                  height: 300.0,
-                  child: SingleChildScrollView(
-                    child: CheckboxGroup(
-                        checked: selectedRights,
-                        checkColor: Theme.of(context).primaryColor,
-                        labels: rightsList,
-                        onSelected: (List<String> checked) {
-                          setState(() {
-                            selectedRights = checked;
-                          });
-                        }),
-                  ),
-                ),
-              ),
-            );
-          }
-        });
-  }
-
   Widget _buildSubmitButton(BuildContext context) {
     return ButtonTheme(
       minWidth: 150.0,
@@ -337,7 +244,7 @@ class _NewUserPageState extends State<NewUserPage> {
         child: widget._model.isLoading
             ? CircularProgressIndicator()
             : Text(
-                isUserForEdit ? "UPDATE USER" : "ADD NEW USER",
+                isProductForEdit ? "UPDATE PRODUCT" : "ADD NEW PRODUCT",
                 style: TextStyle(
                     fontSize: 15.0,
                     letterSpacing: 1.0,
@@ -353,30 +260,15 @@ class _NewUserPageState extends State<NewUserPage> {
             }
 
             if (selectedSector == null) {
-              if (isUserForEdit) {
-                selectedSector = widget.userForUpadte.sector;
+              if (isProductForEdit) {
+                selectedSector = widget.productForUpdate.whereIsStored;
                 _validationSectorError = false;
               } else {
                 _validationSectorError = true;
               }
             }
 
-            if (selectedAdminUser == null) {
-              if (isUserForEdit) {
-                selectedAdminUser = widget.userForUpadte.adminOrUser;
-                _validationAdminUserError = false;
-              } else {
-                _validationAdminUserError = true;
-              }
-            }
-
-            if (isUserForEdit) {
-              if (selectedRights == null) {
-                selectedRights = widget.userForUpadte.rights;
-              }
-            }
-
-            if (!_validationAdminUserError && !_validationSectorError) {
+            if (!_validationSectorError) {
               showDialog(
                   context: context,
                   builder: (BuildContext context) {
@@ -387,7 +279,7 @@ class _NewUserPageState extends State<NewUserPage> {
                       contentTextStyle: TextStyle(
                           color: Theme.of(context).accentColor, fontSize: 20.0),
                       backgroundColor: Theme.of(context).primaryColor,
-                      content: _buildWarningForImageAndRights(),
+                      content: _buildWarningForImage(),
                       actions: <Widget>[
                         FlatButton(
                           child: Text(
@@ -409,18 +301,12 @@ class _NewUserPageState extends State<NewUserPage> {
                           ),
                           onPressed: () {
                             _formKey.currentState.save();
-                            _formData['sector'] = selectedSector;
-                            _formData['adminOrUser'] = selectedAdminUser;
-                            if (selectedAdminUser == "Admin") {
-                              _formData['rights'] = null;
-                            } else {
-                              _formData['rights'] = selectedRights;
-                            }
+                            _formData['whereIsStored'] = selectedSector;
                             _formData['imageFile'] = _imageFile;
-                            if (isUserForEdit) {
-                              _submitEditUser(widget._model.updateUser);
+                            if (isProductForEdit) {
+                              _submitEditProduct(widget._model.updateProduct);
                             } else {
-                              _submitNewUser(widget._model.addNewUser);
+                              _submitNewProduct(widget._model.addNewProduct);
                             }
                           },
                         )
@@ -434,7 +320,7 @@ class _NewUserPageState extends State<NewUserPage> {
     );
   }
 
-  Widget _buildAvatarAndUploadPicture(BuildContext context) {
+  Widget _buildProductAndUploadPicture(BuildContext context) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       mainAxisAlignment: MainAxisAlignment.center,
@@ -442,23 +328,24 @@ class _NewUserPageState extends State<NewUserPage> {
         Padding(
           padding: EdgeInsets.only(top: 15.0, left: 50.0),
           child: _imageFile == null
-              ? CircleAvatar(
-                  maxRadius: 45.0,
-                  backgroundImage: (isUserForEdit &&
-                          widget.userForUpadte.imageUrl != "" &&
-                          widget.userForUpadte.imageUrl != null)
-                      ? NetworkImage(widget.userForUpadte.imageUrl)
-                      : AssetImage("assets/Images/default-user-picture.png"),
-                  backgroundColor: Colors.white,
-                )
-              : ClipRRect(
-                  child: Image.file(
-                    _imageFile,
-                    fit: BoxFit.cover,
-                    height: 110.0,
-                    width: 110.0,
-                  ),
-                  borderRadius: BorderRadius.circular(60.0),
+              ? (isProductForEdit &&
+                      widget.productForUpdate.imageUrl != "" &&
+                      widget.productForUpdate.imageUrl != null)
+                  ? Image.network(
+                      widget.productForUpdate.imageUrl,
+                      height: 110,
+                      width: 110,
+                    )
+                  : Image.asset(
+                      "assets/Images/default-product-picture.jpg",
+                      height: 110,
+                      width: 110,
+                    )
+              : Image.file(
+                  _imageFile,
+                  fit: BoxFit.cover,
+                  height: 110.0,
+                  width: 110.0,
                 ),
         ),
         IconButton(
@@ -496,7 +383,7 @@ class _NewUserPageState extends State<NewUserPage> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: <Widget>[
                 Text(
-                  "Upload worker image",
+                  "Upload product image",
                   style: TextStyle(
                       color: Theme.of(context).accentColor,
                       fontSize: 18.0,
@@ -528,37 +415,109 @@ class _NewUserPageState extends State<NewUserPage> {
         });
   }
 
-  void _submitNewUser(Function addNewUser) async {
+  void _submitNewProduct(Function addNewProduct) async {
     setState(() {
       Navigator.of(context).pop();
     });
-    final Map<String, dynamic> addUserResponse = await addNewUser(_formData);
+    final Map<String, dynamic> addProductResponse =
+        await addNewProduct(_formData);
 
     setState(() {
-      if (!addUserResponse['success']) {
-        _addNewUserError = true;
-        _addNewUserErrorMessage = addUserResponse['message'];
+      if (!addProductResponse['success']) {
+        _addNewProductError = true;
+        _addNewProductErrorMessage = addProductResponse['message'];
       } else {
-        Navigator.pushReplacementNamed(context, '/workers');
+        Navigator.pushReplacementNamed(context, '/products');
       }
     });
   }
 
-  void _submitEditUser(Function updateUser) async {
+  void _submitEditProduct(Function updateProduct) async {
     setState(() {
       Navigator.of(context).pop();
     });
     final Map<String, dynamic> updateSectorResponse =
-        await updateUser(widget.userForUpadte.id, _formData);
+        await updateProduct(widget.productForUpdate.id, _formData);
 
     setState(() {
       if (!updateSectorResponse['success']) {
-        _addNewUserError = true;
-        _addNewUserErrorMessage = updateSectorResponse['message'];
+        _addNewProductError = true;
+        _addNewProductErrorMessage = updateSectorResponse['message'];
       } else {
-        Navigator.pushReplacementNamed(context, '/workers');
+        Navigator.pushReplacementNamed(context, '/products');
       }
     });
+  }
+
+  Widget _buildBarcodeTextField() {
+    return Container(
+      padding: EdgeInsets.only(left: 15.0, right: 15.0),
+      child: TextFormField(
+        controller: _barcodeTextController,
+        keyboardType: TextInputType.number,
+        cursorColor: Theme.of(context).primaryColor,
+        decoration: InputDecoration(
+          focusColor: Theme.of(context).primaryColor,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10.0),
+          ),
+          labelText: "Barcode",
+          prefixIcon: Icon(Icons.chrome_reader_mode),
+        ),
+        validator: (String typed) {
+          if (typed.isEmpty) {
+            return "Product name field shouldn't be empty.";
+          } else if (typed.length != 13) {
+            return "Barcode should be 13 characters long.";
+          }
+          return null;
+        },
+        onSaved: (String typed) {
+          _formData['barcode'] = typed;
+        },
+      ),
+    );
+  }
+
+  Widget _buildBarcodeScanButton() {
+    return ButtonTheme(
+        minWidth: 100.0,
+        height: 50.0,
+        child: FlatButton(
+          child: Text(
+            "GENERATE",
+            style: TextStyle(
+                fontSize: 9.0,
+                letterSpacing: 1.0,
+                fontWeight: FontWeight.bold,
+                color: Colors.white),
+          ),
+          color: Theme.of(context).primaryColor,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+          onPressed: () {
+            if (_barcodeTextController.text.length != 13) {
+              _formKey.currentState.validate();
+            } else {
+              setState(() {
+                barcodeForShow = _barcodeTextController.text;
+              });
+            }
+          },
+        ));
+  }
+
+  Widget _showBarcodeImage() {
+    return Visibility(
+      visible: barcodeForShow != null ? true : false,
+      child: BarCodeImage(
+        data: barcodeForShow,
+        codeType: BarCodeType.CodeEAN13,
+        hasText: true,
+        barHeight: 90.0,
+        lineWidth: 2.0,
+      ),
+    );
   }
 
   Widget _buildNewUserForm(BuildContext context) {
@@ -567,11 +526,13 @@ class _NewUserPageState extends State<NewUserPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: <Widget>[
-            _buildAvatarAndUploadPicture(context),
+            _buildProductAndUploadPicture(context),
             Padding(
               padding: EdgeInsets.only(top: 8.0, bottom: 10.0),
-              child: Text( isUserForEdit ? "Update ${widget.userForUpadte.name}" :
-                "New worker",
+              child: Text(
+                isProductForEdit
+                    ? "Update ${widget.productForUpdate.name}"
+                    : "New product",
                 style: TextStyle(
                     color: Colors.grey,
                     fontSize: 20.0,
@@ -583,65 +544,26 @@ class _NewUserPageState extends State<NewUserPage> {
                 key: _formKey,
                 child: Column(
                   children: <Widget>[
-                    _buildNameAndSurenameTextField(context),
+                    _buildNameTextField(context),
                     SizedBox(height: 10.0),
-                    _buildAddressTextField(context),
+                    _buildQuantityTextField(context),
                     SizedBox(height: 10.0),
-                    _buildNumberTextField(context),
+                    _buildMeasurementUnitTextField(context),
                     SizedBox(height: 10.0),
                     _buildSectorPicker(),
                     SizedBox(height: 5.0),
                     _buildSectorError(),
                     SizedBox(height: 10.0),
-                    Text(
-                      "Rights",
-                      style: TextStyle(color: Colors.grey, fontSize: 18.0),
-                    ),
+                    _buildDescriptionTextField(context),
                     SizedBox(height: 10.0),
-                    _buildAdminUserPicker(context),
-                    SizedBox(height: 3.0),
-                    _buildAdminUserError(),
-                    SizedBox(height: 10.0),
-                    Visibility(
-                      visible: (selectedAdminUser == null ||
-                              selectedAdminUser == "Admin")
-                          ? false
-                          : true,
-                      child: Text(
-                        "Select worker rights",
-                        style: TextStyle(color: Colors.grey, fontSize: 18.0),
-                      ),
-                    ),
-                    SizedBox(height: 10.0),
-                    _buildRightsPicker(),
-                    Visibility(
-                      visible: (selectedAdminUser == null ||
-                              selectedAdminUser == "Admin")
-                          ? false
-                          : true,
-                      child: SizedBox(height: 10.0),
-                    ),
-                    Visibility(
-                      visible: isUserForEdit ? false : true,
-                      child: Text(
-                        "Worker login credentials",
-                        style: TextStyle(color: Colors.grey, fontSize: 18.0),
-                      ),
-                    ),
-                    SizedBox(height: 10.0),
-                    Visibility(
-                      visible: isUserForEdit ? false : true,
-                      child: _buildEmailTextField(context),
-                    ),
-                    SizedBox(height: 10.0),
-                    Visibility(
-                      visible: isUserForEdit ? false : true,
-                      child: _buildPasswordTextField(context),
-                    ),
+                    _buildBarcodeTextField(),
+                    SizedBox(height: 5.0),
+                    _buildBarcodeScanButton(),
+                    _showBarcodeImage(),
                     SizedBox(height: 10.0),
                     _buildSubmitButton(context),
                     SizedBox(height: 10.0),
-                    _buildAddNewUserError(),
+                    _buildAddNewProductError(),
                   ],
                 ),
               ),
@@ -664,10 +586,10 @@ class _NewUserPageState extends State<NewUserPage> {
               showDialog(
                   context: context,
                   builder: (BuildContext context) {
-                    return isUserForEdit
+                    return isProductForEdit
                         ? YesNoAlertDialog(
-                            "Are you sure that you don't want to update this worker and go back?",
-                            "/workers")
+                            "Are you sure that you don't want to update '${widget.productForUpdate.name}' and go back?",
+                            "/products")
                         : YesNoAlertDialog(
                             "Are you sure that you want to discard all inputs and go back?",
                             "/main");
@@ -685,16 +607,15 @@ class _NewUserPageState extends State<NewUserPage> {
   }
 
   bool _validationSectorError = false;
-  bool _validationAdminUserError = false;
-  bool _addNewUserError = false;
-  String _addNewUserErrorMessage = "";
+  bool _addNewProductError = false;
+  String _addNewProductErrorMessage = "";
 
-  Widget _buildAddNewUserError() {
+  Widget _buildAddNewProductError() {
     return Visibility(
-        visible: _addNewUserError,
+        visible: _addNewProductError,
         child: Container(
             padding: EdgeInsets.only(left: 8.0, top: 6.0),
-            child: Text(_addNewUserErrorMessage,
+            child: Text(_addNewProductErrorMessage,
                 style: TextStyle(
                     fontStyle: FontStyle.italic,
                     color: Colors.red,
@@ -706,43 +627,23 @@ class _NewUserPageState extends State<NewUserPage> {
         visible: _validationSectorError,
         child: Container(
             padding: EdgeInsets.only(left: 8.0),
-            child: Text("Worker must have sector picked.",
+            child: Text("Sector where product is stored must be picked.",
                 style: TextStyle(color: Colors.red[600], fontSize: 12.0))));
   }
 
-  Widget _buildAdminUserError() {
-    return Visibility(
-        visible: _validationAdminUserError,
-        child: Container(
-            padding: EdgeInsets.only(left: 8.0),
-            child: Text("Worker must be admin or user.",
-                style: TextStyle(color: Colors.red[600], fontSize: 12.0))));
-  }
-
-  Widget _buildWarningForImageAndRights() {
+  Widget _buildWarningForImage() {
     bool missingImage = false;
-    bool missingRights = false;
 
-    String missingImageMessage = "Worker image isn't picked.";
-    String missingRightsMessage = "No rights were picked for worker.";
+    String missingImageMessage = "Product image isn't picked.";
 
-    if (_imageFile == null && !isUserForEdit) {
+    if (_imageFile == null && !isProductForEdit) {
       missingImage = true;
     }
-    if (selectedAdminUser != "Admin") {
-      if (selectedRights == null) {
-        missingRights = true;
-      } else if (selectedRights.isEmpty) {
-        missingRights = true;
-      } else {
-        missingRights = false;
-      }
-    }
 
-    return isUserForEdit
+    return isProductForEdit
         ? Text(
-            "Are you sure you want to update worker '${widget.userForUpadte.name}' ? ${(missingImage || missingRights) ? " \n\n Warning:" : ""} ${missingImage ? "\n\n- " + missingImageMessage : ""} ${missingRights ? "\n\n- " + missingRightsMessage : ""}")
+            "Are you sure you want to update product '${widget.productForUpdate.name}' ? ${(missingImage) ? " \n\n Warning:" : ""} ${missingImage ? "\n\n- " + missingImageMessage : ""}")
         : Text(
-            "Are you sure you want to add worker '${_nameTextController.text}' ? ${(missingImage || missingRights) ? " \n\n Warning:" : ""} ${missingImage ? "\n\n- " + missingImageMessage : ""} ${missingRights ? "\n\n- " + missingRightsMessage : ""}");
+            "Are you sure you want to add product '${_nameTextController.text}' ? ${(missingImage) ? " \n\n Warning:" : ""} ${missingImage ? "\n\n- " + missingImageMessage : ""}");
   }
 }

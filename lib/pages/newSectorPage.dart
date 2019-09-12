@@ -197,7 +197,7 @@ class _NewSectorPageState extends State<NewSectorPage> {
               padding: EdgeInsets.only(top: 10.0, bottom: 10.0),
               child: Text(
                 isSectorForEdit
-                    ? "Update '" + widget.updateSector.name + "' sector"
+                    ? "Update ${widget.updateSector.name} sector"
                     : "New sector",
                 style: TextStyle(
                     color: Colors.grey,

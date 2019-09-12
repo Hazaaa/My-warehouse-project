@@ -9,7 +9,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 // Mine classes
 import 'package:mywarehouseproject/models/user.dart';
 import 'package:mywarehouseproject/models/right.dart';
-import 'package:mywarehouseproject/models/sector.dart';
 
 class ConnectedModels extends Model {
   final Firestore _firestoreInstance = Firestore.instance;
@@ -18,8 +17,28 @@ class ConnectedModels extends Model {
 
   User _authenticatedUser;
   bool _isLoading = false;
-  List<Sector> _sectors;
-  String sectorSearch = "";
+
+  Future<Map<String, dynamic>> uploadImage(
+      String fileName, File _imageFile) async {
+    if (_imageFile != null) {
+      try {
+        final fileExtension = extension(_imageFile.path);
+        final StorageReference storageRef =
+            _firebaseStorage.ref().child(fileName + fileExtension);
+
+        final StorageUploadTask uploadTask = storageRef.putFile(_imageFile);
+
+        final StorageTaskSnapshot taskSnapshot = await uploadTask.onComplete;
+
+        String _imageDownloadUrl = await taskSnapshot.ref.getDownloadURL();
+
+        return {'success': true, 'imageUrl': _imageDownloadUrl};
+      } catch (e) {
+        return {'success': false, 'error': e.message};
+      }
+    }
+    return {'success': false, 'error': "Image file is null!"};
+  }
 }
 
 class UserModel extends ConnectedModels {
@@ -46,28 +65,6 @@ class UserModel extends ConnectedModels {
   Future<FirebaseUser> getCurrentUser() async {
     FirebaseUser user = await _firebaseAuth.currentUser();
     return user;
-  }
-
-  Future<Map<String, dynamic>> uploadImage(
-      String fileName, File _imageFile) async {
-    if (_imageFile != null) {
-      try {
-        final fileExtension = extension(_imageFile.path);
-        final StorageReference storageRef =
-            _firebaseStorage.ref().child(fileName + fileExtension);
-
-        final StorageUploadTask uploadTask = storageRef.putFile(_imageFile);
-
-        final StorageTaskSnapshot taskSnapshot = await uploadTask.onComplete;
-
-        String _imageDownloadUrl = await taskSnapshot.ref.getDownloadURL();
-
-        return {'success': true, 'imageUrl': _imageDownloadUrl};
-      } catch (e) {
-        return {'success': false, 'error': e.message};
-      }
-    }
-    return {'success': false, 'error': "Image file is null!"};
   }
 
   Stream<QuerySnapshot> getWorkersStream() {
@@ -231,23 +228,38 @@ class UserModel extends ConnectedModels {
       if (userData['imageFile'] != null) {
         uploadImageResult = await uploadImage(
             userData['name'] + "_image", userData['imageFile']);
-      }
 
-      if (uploadImageResult['success']) {
-        await _firestoreInstance.collection('workers').add({
-          'id': user.user.uid,
-          'name': userData['name'],
-          'address': userData['address'],
-          'phone': userData['phone'],
-          'sector': userData['sector'],
-          'adminOrUser': userData['adminOrUser'],
-          'rights': userData['rights'],
-          'email': userData['email'],
-          'imageUrl': uploadImageResult['imageUrl'],
-        }).catchError((error) {
-          hasError = true;
-          responseMessage = error;
-        });
+        if (uploadImageResult['success']) {
+          await _firestoreInstance.collection('workers').add({
+            'id': user.user.uid,
+            'name': userData['name'],
+            'address': userData['address'],
+            'phone': userData['phone'],
+            'sector': userData['sector'],
+            'adminOrUser': userData['adminOrUser'],
+            'rights': userData['rights'],
+            'email': userData['email'],
+            'imageUrl': uploadImageResult['imageUrl'],
+          }).catchError((error) {
+            hasError = true;
+            responseMessage = error;
+          });
+        } else {
+          await _firestoreInstance.collection('workers').add({
+            'id': user.user.uid,
+            'name': userData['name'],
+            'address': userData['address'],
+            'phone': userData['phone'],
+            'sector': userData['sector'],
+            'adminOrUser': userData['adminOrUser'],
+            'rights': userData['rights'],
+            'email': userData['email'],
+            'imageUrl': null,
+          }).catchError((error) {
+            hasError = true;
+            responseMessage = error;
+          });
+        }
       } else {
         await _firestoreInstance.collection('workers').add({
           'id': user.user.uid,
@@ -359,7 +371,182 @@ class UserModel extends ConnectedModels {
   }
 }
 
-class ProductModel extends ConnectedModels {}
+class ProductModel extends ConnectedModels {
+
+  Stream<QuerySnapshot> getProductsStream() {
+    return _firestoreInstance
+        .collection('products')
+        .orderBy('name')
+        .snapshots();
+  }
+
+  Future<Map<String, dynamic>> addNewProduct(
+      Map<String, dynamic> productData) async {
+    _isLoading = true;
+    notifyListeners();
+
+    bool hasError = false;
+    String responseMessage = 'Something went wrong.';
+
+    Map<String, dynamic> uploadImageResult;
+
+    if (productData['imageFile'] != null) {
+      uploadImageResult = await uploadImage(
+          productData['name'] + "_image", productData['imageFile']);
+
+      if (uploadImageResult['success']) {
+        await _firestoreInstance.collection('products').add({
+          'name': productData['name'],
+          'description': productData['description'],
+          'quantity': productData['quantity'],
+          'whereIsStored': productData['whereIsStored'],
+          'measurementUnit': productData['measurementUnit'],
+          'imageUrl': uploadImageResult['imageUrl'],
+          'barcode': productData['barcode']
+        }).catchError((error) {
+          hasError = true;
+          responseMessage = error;
+          _isLoading = true;
+          notifyListeners();
+          return {'success': !hasError, 'message': responseMessage};
+        });
+      } else {
+        await _firestoreInstance.collection('products').add({
+          'name': productData['name'],
+          'description': productData['description'],
+          'quantity': productData['quantity'],
+          'whereIsStored': productData['whereIsStored'],
+          'measurementUnit': productData['measurementUnit'],
+          'imageUrl': null,
+          'barcode': productData['barcode']
+        }).catchError(
+          (error) {
+            hasError = true;
+            responseMessage = error;
+            _isLoading = true;
+            notifyListeners();
+            return {'success': !hasError, 'message': responseMessage};
+          },
+        );
+      }
+    } else {
+      await _firestoreInstance.collection('products').add({
+        'name': productData['name'],
+        'description': productData['description'],
+        'quantity': productData['quantity'],
+        'whereIsStored': productData['whereIsStored'],
+        'measurementUnit': productData['measurementUnit'],
+        'imageUrl': null,
+        'barcode': productData['barcode']
+      }).catchError(
+        (error) {
+          hasError = true;
+          responseMessage = error;
+          _isLoading = true;
+          notifyListeners();
+          return {'success': !hasError, 'message': responseMessage};
+        },
+      );
+    }
+
+    _isLoading = false;
+    notifyListeners();
+
+    return {'success': !hasError, 'message': responseMessage};
+  }
+
+  Future<Map<String, dynamic>> updateProduct(
+      String id, Map<String, dynamic> productData) async {
+    _isLoading = true;
+    notifyListeners();
+
+    bool hasError = false;
+    String responseMessage = 'Something went wrong.';
+
+    String imageUrl;
+
+    try {
+      if (productData['imageFile'] != null) {
+        Map<String, dynamic> uploadResult = await uploadImage(
+            productData['name'] + "_image", productData['imageFile']);
+
+        if (uploadResult['success']) {
+          imageUrl = uploadResult['imageUrl'];
+        } else {
+          hasError = true;
+          responseMessage = uploadResult['error'];
+          _isLoading = false;
+          notifyListeners();
+        }
+      }
+
+      if (imageUrl == null) {
+        await _firestoreInstance
+            .collection('products')
+            .document(id)
+            .updateData({
+          'name': productData['name'],
+          'description': productData['description'],
+          'quantity': productData['quantity'],
+          'whereIsStored': productData['whereIsStored'],
+          'measurementUnit': productData['measurementUnit'],
+          'barcode': productData['barcode']
+        });
+      } else {
+        await _firestoreInstance
+            .collection('products')
+            .document(id)
+            .updateData({
+          'name': productData['name'],
+          'description': productData['description'],
+          'quantity': productData['quantity'],
+          'whereIsStored': productData['whereIsStored'],
+          'measurementUnit': productData['measurementUnit'],
+          'imageUrl': imageUrl,
+          'barcode': productData['barcode']
+        });
+      }
+    } catch (e) {
+      _isLoading = true;
+      notifyListeners();
+
+      return {'success': !hasError, 'message': e.message};
+    }
+
+    _isLoading = false;
+    notifyListeners();
+
+    return {'success': !hasError, 'message': responseMessage};
+  }
+
+  Future<Map<String, dynamic>> deleteProduct(String id,
+      [String name, String imageUrl]) async {
+    bool successfullUpdate = true;
+    String errorMessage = "";
+
+    if (name != null && imageUrl != null) {
+      await _firebaseStorage
+          .ref()
+          .child(name + "_image" + extension(imageUrl).split('?')[0])
+          .delete()
+          .catchError((error) {
+        successfullUpdate = false;
+        errorMessage = error;
+      });
+    }
+
+    await _firestoreInstance
+        .collection('products')
+        .document(id)
+        .delete()
+        .catchError((error) {
+      successfullUpdate = false;
+      errorMessage = error;
+    });
+
+    return {'success': successfullUpdate, 'error': errorMessage};
+  }
+}
 
 class RightsModel extends ConnectedModels {
   Stream<QuerySnapshot> getRightsFirestoreStream() {
@@ -394,21 +581,12 @@ class RightsModel extends ConnectedModels {
 }
 
 class SectorModel extends ConnectedModels {
-  List<Sector> get getSectors {
-    return List<Sector>.from(_sectors);
-  }
-
-  void setSectorSearch(String val) {
-    sectorSearch = val;
-    notifyListeners();
-  }
-
   Future<String> getSectorNameById(String sectorId) async {
-    DocumentSnapshot document = await _firestoreInstance.collection('sectors').document(sectorId).get();
-    if(document != null){
+    DocumentSnapshot document =
+        await _firestoreInstance.collection('sectors').document(sectorId).get();
+    if (document != null) {
       return document.data['name'];
-    }
-    else {
+    } else {
       return null;
     }
   }
@@ -472,34 +650,6 @@ class SectorModel extends ConnectedModels {
       errorMessage = error;
     });
     return {'success': successfullUpdate, 'error': errorMessage};
-  }
-
-  Future<bool> fetchSectors() async {
-    _isLoading = true;
-    notifyListeners();
-    var responseSectorsDocuments = await _firestoreInstance
-        .collection('sectors')
-        .orderBy('name')
-        .getDocuments();
-
-    if (responseSectorsDocuments.documents.length == 0) {
-      _isLoading = false;
-      notifyListeners();
-      return false;
-    }
-    List<Sector> tempSectorsList = [];
-    for (var i = 0; i < responseSectorsDocuments.documents.length; i++) {
-      final Sector newRight = Sector(
-          id: responseSectorsDocuments.documents[i].documentID,
-          name: responseSectorsDocuments.documents[i].data['name'],
-          description:
-              responseSectorsDocuments.documents[i].data['description']);
-      tempSectorsList.add(newRight);
-    }
-    _sectors = tempSectorsList;
-    _isLoading = false;
-    notifyListeners();
-    return true;
   }
 }
 

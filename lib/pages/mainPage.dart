@@ -79,14 +79,19 @@ class _MainPageState extends State<MainPage> {
           Visibility(
             child: ListTile(
                 leading: Icon(Icons.add_shopping_cart),
-                title: Text('Add new product')),
+                title: Text('Add new product'), onTap: () {
+                  Navigator.of(context).pushReplacementNamed("/newProduct");
+                },),
             visible: (authUser.adminOrUser == "Admin" ||
                 (authUser.rights != null &&
                     authUser.rights.contains("Add new product"))),
           ),
           Visibility(
             child: ListTile(
-                leading: Icon(Icons.category), title: Text('List products')),
+                leading: Icon(Icons.category), title: Text('List products'),
+                onTap: () {
+                  Navigator.of(context).pushReplacementNamed("/products");
+                },),
             visible: (authUser.adminOrUser == "Admin" ||
                 (authUser.rights != null &&
                     authUser.rights.contains("List products"))),
