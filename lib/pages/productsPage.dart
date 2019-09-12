@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:mywarehouseproject/custom_widgets/floatingAddActionButton.dart';
 import 'package:mywarehouseproject/custom_widgets/logoAppBar.dart';
 import 'package:mywarehouseproject/models/product.dart';
 import 'package:mywarehouseproject/pages/newProductPage.dart';
@@ -205,11 +206,7 @@ class _ProductsPageState extends State<ProductsPage> {
 
   Widget _buildBody() {
     return Column(
-      children: <Widget>[
-        _buildSearchEngine(),
-        Divider(),
-        _buildProductsList(),
-      ],
+      children: <Widget>[_buildSearchEngine(), Divider(), _buildProductsList()],
     );
   }
 
@@ -228,6 +225,7 @@ class _ProductsPageState extends State<ProductsPage> {
         elevation: Theme.of(context).platform == TargetPlatform.iOS ? 0.0 : 4.0,
       ),
       body: _buildBody(),
+      floatingActionButton: FloatingAddActionButton("/newProduct")
     );
   }
 }

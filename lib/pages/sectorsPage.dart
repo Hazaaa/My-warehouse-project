@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:mywarehouseproject/custom_widgets/floatingAddActionButton.dart';
 import 'package:mywarehouseproject/custom_widgets/logoAppBar.dart';
 import 'package:mywarehouseproject/models/sector.dart';
 import 'package:mywarehouseproject/pages/newSectorPage.dart';
@@ -202,6 +203,7 @@ class _SectorsPageState extends State<SectorsPage> {
         elevation: Theme.of(context).platform == TargetPlatform.iOS ? 0.0 : 4.0,
       ),
       body: _buildBody(),
+      floatingActionButton: FloatingAddActionButton("/newSector"),
     );
   }
 }

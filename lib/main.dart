@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mywarehouseproject/pages/newShipmentPage.dart';
 import 'package:scoped_model/scoped_model.dart';
 
 // Mine
@@ -35,6 +36,9 @@ class _MyAppState extends State<MyApp> {
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
+            floatingActionButtonTheme: FloatingActionButtonThemeData(
+                backgroundColor: Colors.green[400]),
+            primaryColor: Colors.blue,
             brightness: Brightness.light,
             primarySwatch: Colors.blue,
             accentColor: Colors.white,
@@ -42,10 +46,11 @@ class _MyAppState extends State<MyApp> {
         routes: {
           '/': (BuildContext context) => LoginPage(),
           '/main': (BuildContext context) => MainPage(_model),
-          '/newUser': (BuildContext context) => NewUserPage(_model,null),
+          '/newUser': (BuildContext context) => NewUserPage(_model, null),
           '/newSector': (BuildContext context) => NewSectorPage(),
           '/newReport': (BuildContext context) => NewReportPage(),
           '/newProduct': (BuildContext context) => NewProductPage(_model, null),
+          '/newShipment': (BuildContext context) => NewShipmentPage(_model),
           '/sectors': (BuildContext context) => SectorsPage(),
           '/workers': (BuildContext context) => WorkersPage(),
           '/reports': (BuildContext context) => ReportsPage(),

@@ -61,7 +61,9 @@ class _MainPageState extends State<MainPage> {
           Visibility(
             child: ListTile(
                 leading: Icon(Icons.transit_enterexit),
-                title: Text('New shipment')),
+                title: Text('New shipment'), onTap: () {
+                  Navigator.of(context).pushReplacementNamed("/newShipment");
+                },),
             visible: authUser.adminOrUser == "Admin" ||
                     (authUser.rights != null &&
                         authUser.rights.contains("New shipment"))
@@ -186,7 +188,7 @@ class _MainPageState extends State<MainPage> {
           ),
           Visibility(
             child: ListTile(
-                leading: Icon(Icons.bug_report), title: Text('Analytics')),
+                leading: Icon(Icons.insert_chart), title: Text('Analytics')),
             visible: (authUser.adminOrUser == "Admin" ||
                 (authUser.rights != null &&
                     authUser.rights.contains("Analytics"))),
