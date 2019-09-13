@@ -60,10 +60,12 @@ class _MainPageState extends State<MainPage> {
           SizedBox(height: 10.0),
           Visibility(
             child: ListTile(
-                leading: Icon(Icons.transit_enterexit),
-                title: Text('New shipment'), onTap: () {
-                  Navigator.of(context).pushReplacementNamed("/newShipment");
-                },),
+              leading: Icon(Icons.transit_enterexit),
+              title: Text('New shipment'),
+              onTap: () {
+                Navigator.of(context).pushReplacementNamed("/newShipment");
+              },
+            ),
             visible: authUser.adminOrUser == "Admin" ||
                     (authUser.rights != null &&
                         authUser.rights.contains("New shipment"))
@@ -71,29 +73,48 @@ class _MainPageState extends State<MainPage> {
                 : false,
           ),
           Visibility(
+            child: ListTile(
+              leading: Icon(Icons.settings),
+              title: Text('Use goods'),
+              onTap: () {
+                Navigator.of(context).pushReplacementNamed("/newUsage");
+              },
+            ),
+            visible: authUser.adminOrUser == "Admin" ||
+                    (authUser.rights != null &&
+                        authUser.rights.contains("Use goods"))
+                ? true
+                : false,
+          ),
+          Visibility(
             child: Divider(),
             visible: (authUser.adminOrUser == "Admin" ||
                     (authUser.rights != null &&
-                        authUser.rights.contains("New shipment")))
+                        (authUser.rights.contains("New shipment") ||
+                            authUser.rights.contains("Use goods"))))
                 ? true
                 : false,
           ),
           Visibility(
             child: ListTile(
-                leading: Icon(Icons.add_shopping_cart),
-                title: Text('Add new product'), onTap: () {
-                  Navigator.of(context).pushReplacementNamed("/newProduct");
-                },),
+              leading: Icon(Icons.add_shopping_cart),
+              title: Text('Add new product'),
+              onTap: () {
+                Navigator.of(context).pushReplacementNamed("/newProduct");
+              },
+            ),
             visible: (authUser.adminOrUser == "Admin" ||
                 (authUser.rights != null &&
                     authUser.rights.contains("Add new product"))),
           ),
           Visibility(
             child: ListTile(
-                leading: Icon(Icons.category), title: Text('List products'),
-                onTap: () {
-                  Navigator.of(context).pushReplacementNamed("/products");
-                },),
+              leading: Icon(Icons.category),
+              title: Text('List products'),
+              onTap: () {
+                Navigator.of(context).pushReplacementNamed("/products");
+              },
+            ),
             visible: (authUser.adminOrUser == "Admin" ||
                 (authUser.rights != null &&
                     authUser.rights.contains("List products"))),
@@ -179,9 +200,12 @@ class _MainPageState extends State<MainPage> {
           ),
           Visibility(
             child: ListTile(
-                leading: Icon(Icons.report_problem), title: Text('Reports'), onTap: () {
-                  Navigator.of(context).pushReplacementNamed('/reports');
-                },),
+              leading: Icon(Icons.report_problem),
+              title: Text('Reports'),
+              onTap: () {
+                Navigator.of(context).pushReplacementNamed('/reports');
+              },
+            ),
             visible: (authUser.adminOrUser == "Admin" ||
                 (authUser.rights != null &&
                     authUser.rights.contains("Reports"))),

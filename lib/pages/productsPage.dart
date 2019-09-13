@@ -59,7 +59,7 @@ class _ProductsPageState extends State<ProductsPage> {
                   description: document['description'],
                   whereIsStored: document['whereIsStored'],
                   measurementUnit: document['measurementUnit'],
-                  quantity: int.parse(document['quantity']),
+                  quantity: document['quantity'],
                   barcode: document['barcode'],
                   imageUrl: document['imageUrl'],
                 );

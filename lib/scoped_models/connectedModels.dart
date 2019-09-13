@@ -372,7 +372,6 @@ class UserModel extends ConnectedModels {
 }
 
 class ProductModel extends ConnectedModels {
-
   Stream<QuerySnapshot> getProductsStream() {
     return _firestoreInstance
         .collection('products')
@@ -706,5 +705,51 @@ class UtilityModel extends ConnectedModels {
 
   bool get isLoading {
     return _isLoading;
+  }
+}
+
+class UsageModel extends ConnectedModels {
+  Future<Map<String, dynamic>> addNewShipment(
+      Map<String, dynamic> shipmentData) async {
+    _isLoading = true;
+    notifyListeners();
+
+    bool successfullAdd = true;
+    String errorMessage = "";
+
+    for (var product in shipmentData['productsArrived']) {
+      await _firestoreInstance
+          .collection('products')
+          .document(product['id'])
+          .updateData({
+        'quantity': FieldValue.increment(product['arrivedQuantity'])
+      }).catchError((error) {
+        successfullAdd = false;
+        errorMessage = error;
+
+        _isLoading = false;
+        notifyListeners();
+        return {'success': successfullAdd, 'error': errorMessage};
+      });
+    }
+
+    await _firestoreInstance.collection('receipt').add({
+      'userCreated': _authenticatedUser.name,
+      'from': shipmentData['from'],
+      'productsArrived': shipmentData['productsArrived'],
+      'totalPrice': shipmentData['totalPrice'],
+      'time': Timestamp.now()
+    }).catchError((error) {
+      successfullAdd = false;
+      errorMessage = error;
+
+      _isLoading = false;
+      notifyListeners();
+      return {'success': successfullAdd, 'error': errorMessage};
+    });
+
+    _isLoading = false;
+    notifyListeners();
+    return {'success': successfullAdd, 'error': errorMessage};
   }
 }

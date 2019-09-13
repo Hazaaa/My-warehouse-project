@@ -10,4 +10,5 @@ class MainModel extends Model
         UtilityModel,
         RightsModel,
         SectorModel,
-        ReportModel {}
+        ReportModel,
+        UsageModel {}
