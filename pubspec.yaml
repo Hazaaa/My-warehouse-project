@@ -33,6 +33,9 @@ dependencies:
   grouped_buttons: ^1.0.4
   image_picker: ^0.4.5
   barcode_flutter: ^1.0.1
+  firebase_analytics: ^5.0.2
+  device_info: ^0.4.0+2
+  #firebase_crashlytics: ^0.1.0+3
 
 dev_dependencies:
   flutter_test:

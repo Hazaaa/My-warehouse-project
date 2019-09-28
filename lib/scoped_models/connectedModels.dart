@@ -1,4 +1,7 @@
 import 'dart:io';
+import 'package:device_info/device_info.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_analytics/observer.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -11,10 +14,42 @@ import 'package:mywarehouseproject/models/user.dart';
 import 'package:mywarehouseproject/models/right.dart';
 
 class ConnectedModels extends Model {
+  // FIREBASE
   final Firestore _firestoreInstance = Firestore.instance;
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   final FirebaseStorage _firebaseStorage = FirebaseStorage.instance;
+  static FirebaseAnalytics _firebaseAnalytics = FirebaseAnalytics();
+  static FirebaseAnalyticsObserver _analyticsObserver =
+      FirebaseAnalyticsObserver(analytics: _firebaseAnalytics);
 
+  FirebaseAnalytics get GetFirebaseAnalytics {
+    return _firebaseAnalytics;
+  }
+
+  FirebaseAnalyticsObserver get GetAnalyticsObserver {
+    return _analyticsObserver;
+  }
+
+  Future<Null> sendAnalytics(
+      String eventName, Map<String, dynamic> eventParameters) async {
+    await _firebaseAnalytics.logEvent(
+        name: eventName, parameters: eventParameters);
+  }
+
+  //DEVICE INFO
+  final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+  AndroidDeviceInfo _androidInfo;
+  IosDeviceInfo _iosInfo;
+
+  void getAndroidInfo() async {
+    _androidInfo = await deviceInfo.androidInfo;
+  }
+
+  void getIosInfo() async {
+    _iosInfo = await deviceInfo.iosInfo;
+  }
+
+  // OTHER STUFF
   User _authenticatedUser;
   bool _isLoading = false;
 
@@ -32,8 +67,29 @@ class ConnectedModels extends Model {
 
         String _imageDownloadUrl = await taskSnapshot.ref.getDownloadURL();
 
+        await sendAnalytics("upload_image", {
+          'userId': _authenticatedUser.id,
+          'user': _authenticatedUser.name,
+          'imageName': fileName,
+          'device': _androidInfo != null
+              ? _androidInfo.model
+              : _iosInfo.utsname.machine,
+          'systemVersion': _androidInfo != null
+              ? _androidInfo.version.release
+              : _iosInfo.systemVersion
+        });
         return {'success': true, 'imageUrl': _imageDownloadUrl};
       } catch (e) {
+        sendAnalytics("error", {
+          'function': "uploadImage",
+          'description': e.message,
+          'device': _androidInfo != null
+              ? _androidInfo.model
+              : _iosInfo.utsname.machine,
+          'systemVersion': _androidInfo != null
+              ? _androidInfo.version.release
+              : _iosInfo.systemVersion
+        });
         return {'success': false, 'error': e.message};
       }
     }
@@ -60,11 +116,6 @@ class UserModel extends ConnectedModels {
       return false;
     }
     return true;
-  }
-
-  Future<FirebaseUser> getCurrentUser() async {
-    FirebaseUser user = await _firebaseAuth.currentUser();
-    return user;
   }
 
   Stream<QuerySnapshot> getWorkersStream() {
@@ -140,6 +191,16 @@ class UserModel extends ConnectedModels {
       _isLoading = false;
       notifyListeners();
 
+      await sendAnalytics("login_attempt", {
+        'error': responseMessage,
+        'device': _androidInfo != null
+            ? _androidInfo.model
+            : _iosInfo.utsname.machine,
+        'systemVersion': _androidInfo != null
+            ? _androidInfo.version.release
+            : _iosInfo.systemVersion
+      });
+
       return {'success': !hasError, 'message': responseMessage};
     } else {
       _authenticatedUser = User(
@@ -156,6 +217,16 @@ class UserModel extends ConnectedModels {
         notifyListeners();
       }
 
+      await sendAnalytics("login", {
+        'userId': _authenticatedUser.id,
+        'user': _authenticatedUser.name,
+        'device': _androidInfo != null
+            ? _androidInfo.model
+            : _iosInfo.utsname.machine,
+        'systemVersion': _androidInfo != null
+            ? _androidInfo.version.release
+            : _iosInfo.systemVersion
+      });
       _isLoading = false;
       notifyListeners();
       return {'success': !hasError, 'message': responseMessage};
@@ -219,6 +290,16 @@ class UserModel extends ConnectedModels {
     });
 
     if (user == null) {
+      await sendAnalytics("new_worker_error", {
+        'error': responseMessage,
+        'device': _androidInfo != null
+            ? _androidInfo.model
+            : _iosInfo.utsname.machine,
+        'systemVersion': _androidInfo != null
+            ? _androidInfo.version.release
+            : _iosInfo.systemVersion
+      });
+
       _isLoading = false;
       notifyListeners();
       return {'success': !hasError, 'message': responseMessage};
@@ -277,6 +358,15 @@ class UserModel extends ConnectedModels {
         });
       }
 
+      await sendAnalytics("new_worker", {
+        'device': _androidInfo != null
+            ? _androidInfo.model
+            : _iosInfo.utsname.machine,
+        'systemVersion': _androidInfo != null
+            ? _androidInfo.version.release
+            : _iosInfo.systemVersion
+      });
+
       _isLoading = false;
       notifyListeners();
 
@@ -330,11 +420,30 @@ class UserModel extends ConnectedModels {
         });
       }
     } catch (e) {
+      await sendAnalytics("update_worker_attempt", {
+        'error': e.message,
+        'device': _androidInfo != null
+            ? _androidInfo.model
+            : _iosInfo.utsname.machine,
+        'systemVersion': _androidInfo != null
+            ? _androidInfo.version.release
+            : _iosInfo.systemVersion
+      });
+
       _isLoading = true;
       notifyListeners();
 
       return {'success': !hasError, 'message': e.message};
     }
+
+    await sendAnalytics("update_worker", {
+      'userId': id,
+      'device':
+          _androidInfo != null ? _androidInfo.model : _iosInfo.utsname.machine,
+      'systemVersion': _androidInfo != null
+          ? _androidInfo.version.release
+          : _iosInfo.systemVersion
+    });
 
     _isLoading = false;
     notifyListeners();
@@ -365,6 +474,15 @@ class UserModel extends ConnectedModels {
         .catchError((error) {
       successfullUpdate = false;
       errorMessage = error;
+    });
+
+    await sendAnalytics("delete_worker", {
+      'userId': id,
+      'device':
+          _androidInfo != null ? _androidInfo.model : _iosInfo.utsname.machine,
+      'systemVersion': _androidInfo != null
+          ? _androidInfo.version.release
+          : _iosInfo.systemVersion
     });
 
     return {'success': successfullUpdate, 'error': errorMessage};
@@ -448,6 +566,15 @@ class ProductModel extends ConnectedModels {
       );
     }
 
+    await sendAnalytics("new_product", {
+      'productName': productData['name'],
+      'device':
+          _androidInfo != null ? _androidInfo.model : _iosInfo.utsname.machine,
+      'systemVersion': _androidInfo != null
+          ? _androidInfo.version.release
+          : _iosInfo.systemVersion
+    });
+
     _isLoading = false;
     notifyListeners();
 
@@ -512,6 +639,15 @@ class ProductModel extends ConnectedModels {
       return {'success': !hasError, 'message': e.message};
     }
 
+    await sendAnalytics("update_product", {
+      'productName': productData['name'],
+      'device':
+          _androidInfo != null ? _androidInfo.model : _iosInfo.utsname.machine,
+      'systemVersion': _androidInfo != null
+          ? _androidInfo.version.release
+          : _iosInfo.systemVersion
+    });
+
     _isLoading = false;
     notifyListeners();
 
@@ -541,6 +677,15 @@ class ProductModel extends ConnectedModels {
         .catchError((error) {
       successfullUpdate = false;
       errorMessage = error;
+    });
+
+    await sendAnalytics("delete_product", {
+      'productId': id,
+      'device':
+          _androidInfo != null ? _androidInfo.model : _iosInfo.utsname.machine,
+      'systemVersion': _androidInfo != null
+          ? _androidInfo.version.release
+          : _iosInfo.systemVersion
     });
 
     return {'success': successfullUpdate, 'error': errorMessage};
@@ -609,6 +754,15 @@ class SectorModel extends ConnectedModels {
       errorMessage = error;
     });
 
+    await sendAnalytics("new_sector", {
+      'sectorName': name,
+      'device':
+          _androidInfo != null ? _androidInfo.model : _iosInfo.utsname.machine,
+      'systemVersion': _androidInfo != null
+          ? _androidInfo.version.release
+          : _iosInfo.systemVersion
+    });
+
     _isLoading = false;
     notifyListeners();
     return {'success': successfullAdd, 'error': errorMessage};
@@ -631,6 +785,15 @@ class SectorModel extends ConnectedModels {
       return {'success': successfullUpdate, 'error': errorMessage};
     });
 
+    await sendAnalytics("update_sector", {
+      'sectorId': id,
+      'device':
+          _androidInfo != null ? _androidInfo.model : _iosInfo.utsname.machine,
+      'systemVersion': _androidInfo != null
+          ? _androidInfo.version.release
+          : _iosInfo.systemVersion
+    });
+
     _isLoading = false;
     notifyListeners();
     return {'success': successfullUpdate, 'error': errorMessage};
@@ -648,6 +811,16 @@ class SectorModel extends ConnectedModels {
       successfullUpdate = false;
       errorMessage = error;
     });
+
+    await sendAnalytics("delete_sector", {
+      'sectorId': id,
+      'device':
+          _androidInfo != null ? _androidInfo.model : _iosInfo.utsname.machine,
+      'systemVersion': _androidInfo != null
+          ? _androidInfo.version.release
+          : _iosInfo.systemVersion
+    });
+
     return {'success': successfullUpdate, 'error': errorMessage};
   }
 }
@@ -673,6 +846,15 @@ class ReportModel extends ConnectedModels {
       errorMessage = error.message;
     });
 
+    await sendAnalytics("delete_report", {
+      'reportId': id,
+      'device':
+          _androidInfo != null ? _androidInfo.model : _iosInfo.utsname.machine,
+      'systemVersion': _androidInfo != null
+          ? _androidInfo.version.release
+          : _iosInfo.systemVersion
+    });
+
     return {'success': successfullUpdate, 'error': errorMessage};
   }
 
@@ -690,6 +872,15 @@ class ReportModel extends ConnectedModels {
     }).catchError((error) {
       successfullAdd = false;
       errorMessage = error;
+    });
+
+    await sendAnalytics("new_report", {
+      'user': _authenticatedUser.name,
+      'device':
+          _androidInfo != null ? _androidInfo.model : _iosInfo.utsname.machine,
+      'systemVersion': _androidInfo != null
+          ? _androidInfo.version.release
+          : _iosInfo.systemVersion
     });
 
     _isLoading = false;
@@ -716,8 +907,8 @@ class UsageModel extends ConnectedModels {
 
     bool successfullAdd = true;
     String errorMessage = "";
-
     for (var product in shipmentData['productsArrived']) {
+      print(product['arrivedQuantity']);
       await _firestoreInstance
           .collection('products')
           .document(product['id'])
@@ -747,6 +938,67 @@ class UsageModel extends ConnectedModels {
       notifyListeners();
       return {'success': successfullAdd, 'error': errorMessage};
     });
+
+    await sendAnalytics("new_shipment", {
+        'user': _authenticatedUser.name,
+        'device': _androidInfo != null
+            ? _androidInfo.model
+            : _iosInfo.utsname.machine,
+        'systemVersion':
+            _androidInfo != null ? _androidInfo.version.release : _iosInfo.systemVersion
+      });
+
+    _isLoading = false;
+    notifyListeners();
+    return {'success': successfullAdd, 'error': errorMessage};
+  }
+
+  Future<Map<String, dynamic>> addNewUsage(
+      Map<String, dynamic> shipmentData) async {
+    _isLoading = true;
+    notifyListeners();
+
+    bool successfullAdd = true;
+    String errorMessage = "";
+
+    for (var product in shipmentData['productsPicked']) {
+      await _firestoreInstance
+          .collection('products')
+          .document(product['id'])
+          .updateData({
+        'quantity': FieldValue.increment(product['usageQuantity'] * -1)
+      }).catchError((error) {
+        successfullAdd = false;
+        errorMessage = error;
+
+        _isLoading = false;
+        notifyListeners();
+        return {'success': successfullAdd, 'error': errorMessage};
+      });
+    }
+
+    await _firestoreInstance.collection('receipt').add({
+      'userCreated': _authenticatedUser.name,
+      'description': shipmentData['description'],
+      'productsPicked': shipmentData['productsPicked'],
+      'time': Timestamp.now()
+    }).catchError((error) {
+      successfullAdd = false;
+      errorMessage = error;
+
+      _isLoading = false;
+      notifyListeners();
+      return {'success': successfullAdd, 'error': errorMessage};
+    });
+
+    await sendAnalytics("new_usage", {
+        'user': _authenticatedUser.name,
+        'device': _androidInfo != null
+            ? _androidInfo.model
+            : _iosInfo.utsname.machine,
+        'systemVersion':
+            _androidInfo != null ? _androidInfo.version.release : _iosInfo.systemVersion
+      });
 
     _isLoading = false;
     notifyListeners();

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 // Mine classes/widgets
 import 'package:mywarehouseproject/scoped_models/mainModel.dart';
-import 'package:mywarehouseproject/custom_widgets/logoAppBar.dart';
 import 'package:mywarehouseproject/models/user.dart';
 
 class MainPage extends StatefulWidget {
@@ -77,7 +76,7 @@ class _MainPageState extends State<MainPage> {
               leading: Icon(Icons.settings),
               title: Text('Use goods'),
               onTap: () {
-                Navigator.of(context).pushReplacementNamed("/newUsage");
+                Navigator.of(context).pushReplacementNamed("/useGoods");
               },
             ),
             visible: authUser.adminOrUser == "Admin" ||
@@ -123,7 +122,7 @@ class _MainPageState extends State<MainPage> {
             child: Divider(),
             visible: (authUser.adminOrUser == "Admin" ||
                 (authUser.rights != null &&
-                    (authUser.rights.contains("New shipment") ||
+                    (authUser.rights.contains("Add new product") ||
                         authUser.rights.contains("List products")))),
           ),
           Visibility(
@@ -211,16 +210,9 @@ class _MainPageState extends State<MainPage> {
                     authUser.rights.contains("Reports"))),
           ),
           Visibility(
-            child: ListTile(
-                leading: Icon(Icons.insert_chart), title: Text('Analytics')),
-            visible: (authUser.adminOrUser == "Admin" ||
-                (authUser.rights != null &&
-                    authUser.rights.contains("Analytics"))),
-          ),
-          Visibility(
             child: Divider(),
             visible: authUser.rights == null ||
-                (authUser.rights.contains("Analytics") ||
+                (
                     authUser.rights.contains("Reports") ||
                     authUser.rights.contains("Send report")),
           ),
@@ -239,12 +231,9 @@ class _MainPageState extends State<MainPage> {
 
   Widget _buildMainPageBody() {
     return Center(
-      child: Text(
-        "News feed",
-        style: TextStyle(
-            color: Theme.of(context).accentColor,
-            fontSize: 18.0,
-            fontWeight: FontWeight.bold),
+      child: Container(
+        child: Image.asset('assets/logo-with-text.png'),
+        padding: EdgeInsets.only(left: 30.0, bottom: 20.0),
       ),
     );
   }
@@ -255,7 +244,6 @@ class _MainPageState extends State<MainPage> {
         backgroundColor: Theme.of(context).primaryColor,
         drawer: _buildSideDrawer(context),
         appBar: AppBar(
-          title: LogoAppBar(),
           elevation:
               Theme.of(context).platform == TargetPlatform.iOS ? 0.0 : 4.0,
         ),

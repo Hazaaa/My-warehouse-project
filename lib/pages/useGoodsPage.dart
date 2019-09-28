@@ -4,23 +4,21 @@ import 'package:mywarehouseproject/custom_widgets/logoAppBar.dart';
 import 'package:mywarehouseproject/custom_widgets/yesNoAlertDialog.dart';
 import 'package:mywarehouseproject/scoped_models/mainModel.dart';
 
-class NewShipmentPage extends StatefulWidget {
+class UseGoodsPage extends StatefulWidget {
   final MainModel _model;
 
-  NewShipmentPage(this._model);
+  UseGoodsPage(this._model);
 
   @override
   State<StatefulWidget> createState() {
-    return _NewShipmentPageState();
+    return _UseGoodsPageState();
   }
 }
 
-class _NewShipmentPageState extends State<NewShipmentPage> {
-  final TextEditingController _fromTextFieldController =
+class _UseGoodsPageState extends State<UseGoodsPage> {
+  final TextEditingController _descriptionTextFieldController =
       TextEditingController();
   final TextEditingController _quantityAddTextFieldController =
-      TextEditingController();
-  final TextEditingController _priceAddTextFieldController =
       TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   List<Map<String, dynamic>> pickedProducts = [];
@@ -30,32 +28,26 @@ class _NewShipmentPageState extends State<NewShipmentPage> {
 
   @override
   void dispose() {
-    _fromTextFieldController.dispose();
+    _descriptionTextFieldController.dispose();
     _quantityAddTextFieldController.dispose();
-    _priceAddTextFieldController.dispose();
     super.dispose();
   }
 
-  Widget _buildFromTextField() {
+  Widget _buildDescriptionTextField() {
     return Container(
       padding: EdgeInsets.only(left: 15.0, right: 15.0),
       child: TextFormField(
-        controller: _fromTextFieldController,
+        keyboardType: TextInputType.multiline,
+        controller: _descriptionTextFieldController,
         cursorColor: Theme.of(context).primaryColor,
         decoration: InputDecoration(
           focusColor: Theme.of(context).primaryColor,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10.0),
           ),
-          labelText: "From",
-          prefixIcon: Icon(Icons.store_mall_directory),
+          labelText: "Description",
+          prefixIcon: Icon(Icons.description),
         ),
-        validator: (String typed) {
-          if (typed.isEmpty) {
-            return "From field shouldn't be empty.";
-          }
-          return null;
-        },
       ),
     );
   }
@@ -77,111 +69,97 @@ class _NewShipmentPageState extends State<NewShipmentPage> {
         showDialog(
             context: context,
             builder: (context) {
-              return AlertDialog(
-                actions: <Widget>[
-                  FlatButton(
-                    child: Text(
-                      "Add",
-                      style: TextStyle(
-                          fontSize: 18.0, color: Theme.of(context).accentColor),
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        pickedProducts
-                            .removeWhere((x) => x['id'] == document.documentID);
-                        pickedProducts.add({
-                          'id': document.documentID,
-                          'name': document['name'],
-                          'quantity': document['quantity'],
-                          'measurementUnit': document['measurementUnit'],
-                          'arrivedQuantity':
-                              _quantityAddTextFieldController.text.isEmpty
-                                  ? 0
-                                  : int.parse(_quantityAddTextFieldController.text),
-                          'pricePerUnit':
-                              _priceAddTextFieldController.text.isEmpty
-                                  ? 0
-                                  : int.parse(_priceAddTextFieldController.text)
-                        });
-                        countTotalPrice();
-                        _addNewShipmentError = false;
-                        Navigator.of(context).pop();
-                        Navigator.of(context).pop();
-                      });
-                    },
-                  ),
-                ],
-                backgroundColor: Theme.of(context).primaryColor,
-                title: Text(
-                  "Quantity",
-                  style: TextStyle(color: Theme.of(context).accentColor),
-                ),
-                content: SingleChildScrollView(
-                  child: Column(
-                    children: <Widget>[
-                      SizedBox(height: 10.0),
-                      Container(
-                        padding: EdgeInsets.only(left: 6.0, right: 6.0),
-                        child: TextField(
-                          style:
-                              TextStyle(color: Theme.of(context).accentColor),
-                          controller: _quantityAddTextFieldController,
-                          cursorColor: Theme.of(context).accentColor,
-                          keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
-                            labelText: "Quantity",
-                            labelStyle:
-                                TextStyle(color: Theme.of(context).accentColor),
-                            prefixIcon: Icon(
-                              Icons.filter_9_plus,
-                              color: Theme.of(context).accentColor,
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                                borderSide: BorderSide(
-                                    color: Theme.of(context).accentColor,
-                                    width: 1.0)),
-                            focusedBorder: OutlineInputBorder(
-                                borderSide: BorderSide(
-                                    color: Theme.of(context).accentColor,
-                                    width: 1.0)),
-                          ),
+              return StatefulBuilder(
+                builder: (context, setState) {
+                  return AlertDialog(
+                    actions: <Widget>[
+                      FlatButton(
+                        child: Text(
+                          "Add",
+                          style: TextStyle(
+                              fontSize: 18.0,
+                              color: Theme.of(context).accentColor),
                         ),
-                      ),
-                      SizedBox(height: 10.0),
-                      Container(
-                        padding: EdgeInsets.only(left: 6.0, right: 6.0),
-                        child: TextField(
-                          style:
-                              TextStyle(color: Theme.of(context).accentColor),
-                          controller: _priceAddTextFieldController,
-                          cursorColor: Theme.of(context).accentColor,
-                          keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
-                            labelText: "Price per unit",
-                            labelStyle:
-                                TextStyle(color: Theme.of(context).accentColor),
-                            prefixIcon: Icon(
-                              Icons.attach_money,
-                              color: Theme.of(context).accentColor,
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                                borderSide: BorderSide(
-                                    color: Theme.of(context).accentColor,
-                                    width: 1.0)),
-                            focusedBorder: OutlineInputBorder(
-                                borderSide: BorderSide(
-                                    color: Theme.of(context).accentColor,
-                                    width: 1.0)),
-                          ),
-                        ),
+                        onPressed: () {
+                          setState(() {
+                            if (_quantityAddTextFieldController
+                                    .text.isNotEmpty &&
+                                int.parse(
+                                        _quantityAddTextFieldController.text) >
+                                    document['quantity']) {
+                              _quantityError = true;
+                              _quantityErrorMessage =
+                                  "Its only left ${document['quantity']} ${document['measurementUnit']}.";
+                              return;
+                            }
+                            pickedProducts.removeWhere(
+                                (x) => x['id'] == document.documentID);
+                            pickedProducts.add({
+                              'id': document.documentID,
+                              'name': document['name'],
+                              'quantity': document['quantity'],
+                              'measurementUnit': document['measurementUnit'],
+                              'usageQuantity':
+                                  _quantityAddTextFieldController.text.isEmpty
+                                      ? 0
+                                      : int.parse(
+                                          _quantityAddTextFieldController.text)
+                            });
+                            _addNewUsageError = false;
+                            _quantityError = false;
+                            Navigator.of(context).pop();
+                            Navigator.of(context).pop();
+                          });
+                        },
                       ),
                     ],
-                  ),
-                ),
+                    backgroundColor: Theme.of(context).primaryColor,
+                    title: Text(
+                      "Quantity",
+                      style: TextStyle(color: Theme.of(context).accentColor),
+                    ),
+                    content: SingleChildScrollView(
+                      child: Column(
+                        children: <Widget>[
+                          SizedBox(height: 10.0),
+                          Container(
+                            padding: EdgeInsets.only(left: 6.0, right: 6.0),
+                            child: TextField(
+                              style: TextStyle(
+                                  color: Theme.of(context).accentColor),
+                              controller: _quantityAddTextFieldController,
+                              cursorColor: Theme.of(context).accentColor,
+                              keyboardType: TextInputType.number,
+                              decoration: InputDecoration(
+                                labelText: "Quantity",
+                                labelStyle: TextStyle(
+                                    color: Theme.of(context).accentColor),
+                                prefixIcon: Icon(
+                                  Icons.filter_9_plus,
+                                  color: Theme.of(context).accentColor,
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                    borderSide: BorderSide(
+                                        color: Theme.of(context).accentColor,
+                                        width: 1.0)),
+                                focusedBorder: OutlineInputBorder(
+                                    borderSide: BorderSide(
+                                        color: Theme.of(context).accentColor,
+                                        width: 1.0)),
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 10.0),
+                          _buildQuantityError()
+                        ],
+                      ),
+                    ),
+                  );
+                },
               );
             }).whenComplete(() {
           _quantityAddTextFieldController.text = "";
-          _priceAddTextFieldController.text = "";
+          _quantityError = false;
         });
       },
     );
@@ -200,6 +178,7 @@ class _NewShipmentPageState extends State<NewShipmentPage> {
             color: Theme.of(context).accentColor,
           ),
           onPressed: () {
+            _addNewUsageError = true;
             showModalBottomSheet(
               backgroundColor: Theme.of(context).primaryColor,
               context: context,
@@ -258,9 +237,9 @@ class _NewShipmentPageState extends State<NewShipmentPage> {
         ),
       ),
       title: Padding(
-        padding: EdgeInsets.only(left: 10.0),
+        padding: EdgeInsets.only(left: 20.0),
         child: Text(
-          "Products arrived",
+          "Used products",
           style: TextStyle(
               color: Colors.grey, fontSize: 20.0, fontWeight: FontWeight.bold),
         ),
@@ -304,28 +283,9 @@ class _NewShipmentPageState extends State<NewShipmentPage> {
             }
           }
           break;
-        case 3:
-          {
-            if (ascending) {
-              pickedProducts.sort(
-                  (a, b) => a['pricePerUnit'].compareTo(b['pricePerUnit']));
-            } else {
-              pickedProducts.sort(
-                  (a, b) => b['pricePerUnit'].compareTo(a['pricePerUnit']));
-            }
-          }
-          break;
         default:
       }
     });
-  }
-
-  void countTotalPrice() {
-    totalPrice = 0;
-    for (var product in pickedProducts) {
-      totalPrice += product['arrivedQuantity'] *
-          product['pricePerUnit'];
-    }
   }
 
   Widget _buildDataTableWithProducts() {
@@ -333,7 +293,7 @@ class _NewShipmentPageState extends State<NewShipmentPage> {
       child: DataTable(
           sortAscending: sortAscending,
           sortColumnIndex: sortColumn,
-          columnSpacing: 20.0,
+          columnSpacing: 25.0,
           columns: <DataColumn>[
             DataColumn(
                 label: Text("Product: "),
@@ -347,13 +307,7 @@ class _NewShipmentPageState extends State<NewShipmentPage> {
                   sortDataTableColumns(columnIndex, ascending);
                 }),
             DataColumn(
-                label: Text("Arrived: "),
-                numeric: true,
-                onSort: (columnIndex, ascending) {
-                  sortDataTableColumns(columnIndex, ascending);
-                }),
-            DataColumn(
-                label: Text("Price: "),
+                label: Text("For use: "),
                 numeric: true,
                 onSort: (columnIndex, ascending) {
                   sortDataTableColumns(columnIndex, ascending);
@@ -371,8 +325,7 @@ class _NewShipmentPageState extends State<NewShipmentPage> {
       rows.add(DataRow(cells: <DataCell>[
         DataCell(Text(product['name'])),
         DataCell(Text(product['quantity'].toString())),
-        DataCell(Text(product['arrivedQuantity'].toString())),
-        DataCell(Text(product['pricePerUnit'].toString() + " \$")),
+        DataCell(Text(product['usageQuantity'].toString())),
         DataCell(
             Icon(
               Icons.remove,
@@ -380,7 +333,6 @@ class _NewShipmentPageState extends State<NewShipmentPage> {
             ), onTap: () {
           setState(() {
             pickedProducts.remove(product);
-            countTotalPrice();
           });
         })
       ]));
@@ -389,7 +341,7 @@ class _NewShipmentPageState extends State<NewShipmentPage> {
     return rows;
   }
 
-  Widget _buildAddNewShipmentButton() {
+  Widget _buildNewUsageButton() {
     return ButtonTheme(
         minWidth: 150.0,
         height: 50.0,
@@ -410,21 +362,21 @@ class _NewShipmentPageState extends State<NewShipmentPage> {
           onPressed: () {
             setState(() {
               if (pickedProducts.isEmpty) {
-                _addNewShipmentError = true;
-                _addNewShipmentErrorMessage =
-                    "You can't create new shipment without added products.";
+                _addNewUsageError = true;
+                _addNewUsageErrorMessage = "You didn't pick any products.";
                 return;
               }
-              if (_fromTextFieldController.text.isEmpty) {
-                _addNewShipmentError = true;
-                _addNewShipmentErrorMessage = "From text field can't be empty.";
+              if (_descriptionTextFieldController.text.isEmpty) {
+                _addNewUsageError = true;
+                _addNewUsageErrorMessage =
+                    "Description text field can't be empty.";
                 return;
               }
 
-              _addNewShipmentError = false;
-              _addNewShipmentErrorMessage = "";
+              _addNewUsageError = false;
+              _addNewUsageErrorMessage = "";
 
-              if (!_addNewShipmentError) {
+              if (!_addNewUsageError) {
                 showDialog(
                     context: context,
                     builder: (BuildContext context) {
@@ -459,7 +411,7 @@ class _NewShipmentPageState extends State<NewShipmentPage> {
                             ),
                             onPressed: () {
                               Navigator.of(context).pop();
-                              submitShipment();
+                              submitUsage();
                             },
                           )
                         ],
@@ -471,18 +423,17 @@ class _NewShipmentPageState extends State<NewShipmentPage> {
         ));
   }
 
-  void submitShipment() async {
+  void submitUsage() async {
     final Map<String, dynamic> addShipmentResponse =
-        await widget._model.addNewShipment({
-      'from': _fromTextFieldController.text,
-      'productsArrived': pickedProducts,
-      'totalPrice': totalPrice
+        await widget._model.addNewUsage({
+      'description': _descriptionTextFieldController.text,
+      'productsPicked': pickedProducts,
     });
 
     setState(() {
       if (!addShipmentResponse['success']) {
-        _addNewShipmentError = true;
-        _addNewShipmentErrorMessage = addShipmentResponse['message'];
+        _addNewUsageError = true;
+        _addNewUsageErrorMessage = addShipmentResponse['message'];
       } else {
         Navigator.pushReplacementNamed(context, '/main');
       }
@@ -498,7 +449,7 @@ class _NewShipmentPageState extends State<NewShipmentPage> {
             Padding(
               padding: EdgeInsets.only(top: 8.0, bottom: 10.0),
               child: Text(
-                "New shipment",
+                "New usage",
                 style: TextStyle(
                     color: Colors.grey,
                     fontSize: 20.0,
@@ -509,18 +460,13 @@ class _NewShipmentPageState extends State<NewShipmentPage> {
               child: Form(
                 key: _formKey,
                 child: Column(children: <Widget>[
-                  _buildFromTextField(),
+                  _buildDescriptionTextField(),
                   SizedBox(height: 10.0),
                   _buildPickProductButton(),
                   _buildDataTableWithProducts(),
                   SizedBox(height: 10.0),
-                  Visibility(
-                      child: Text("Total price: ${totalPrice} \$"),
-                      visible: (pickedProducts != null &&
-                          pickedProducts.isNotEmpty)),
-                  SizedBox(height: 5.0),
-                  _buildAddNewShipmentButton(),
-                  _buildAddNewShipmentError(),
+                  _buildNewUsageButton(),
+                  _buildNewUsageError(),
                 ]),
               ),
             ),
@@ -538,7 +484,7 @@ class _NewShipmentPageState extends State<NewShipmentPage> {
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed: () {
-            if (!_fromTextFieldController.text.isEmpty ||
+            if (!_descriptionTextFieldController.text.isEmpty ||
                 pickedProducts.isNotEmpty) {
               showDialog(
                   context: context,
@@ -559,16 +505,28 @@ class _NewShipmentPageState extends State<NewShipmentPage> {
     );
   }
 
-  bool _addNewShipmentError = false;
-  String _addNewShipmentErrorMessage = "";
+  bool _addNewUsageError = false;
+  String _addNewUsageErrorMessage = "";
+  bool _quantityError = false;
+  String _quantityErrorMessage = "";
 
-  Widget _buildAddNewShipmentError() {
+  Widget _buildNewUsageError() {
     return Visibility(
-        visible: _addNewShipmentError,
+        visible: _addNewUsageError,
         child: FittedBox(
             child: Container(
                 padding: EdgeInsets.only(left: 8.0, top: 6.0),
-                child: Text(_addNewShipmentErrorMessage,
+                child: Text(_addNewUsageErrorMessage,
+                    style: TextStyle(color: Colors.red, fontSize: 16.0)))));
+  }
+
+  Widget _buildQuantityError() {
+    return Visibility(
+        visible: _quantityError,
+        child: FittedBox(
+            child: Container(
+                padding: EdgeInsets.only(left: 8.0, top: 6.0),
+                child: Text(_quantityErrorMessage,
                     style: TextStyle(color: Colors.red, fontSize: 16.0)))));
   }
 }

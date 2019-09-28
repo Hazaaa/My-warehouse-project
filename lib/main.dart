@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:mywarehouseproject/pages/newShipmentPage.dart';
 import 'package:scoped_model/scoped_model.dart';
 
 // Mine
@@ -14,6 +13,8 @@ import 'package:mywarehouseproject/pages/workersPage.dart';
 import 'package:mywarehouseproject/pages/newProductPage.dart';
 import 'package:mywarehouseproject/pages/productsPage.dart';
 import 'package:mywarehouseproject/pages/reportsPage.dart';
+import 'package:mywarehouseproject/pages/newShipmentPage.dart';
+import 'package:mywarehouseproject/pages/useGoodsPage.dart';
 
 void main() {
   runApp(MyApp());
@@ -34,6 +35,9 @@ class _MyAppState extends State<MyApp> {
     return ScopedModel<MainModel>(
       model: _model,
       child: MaterialApp(
+        navigatorObservers: [
+          _model.GetAnalyticsObserver
+        ],
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
             floatingActionButtonTheme: FloatingActionButtonThemeData(
@@ -44,13 +48,14 @@ class _MyAppState extends State<MyApp> {
             accentColor: Colors.white,
             fontFamily: "Poppins"),
         routes: {
-          '/': (BuildContext context) => LoginPage(),
+          '/': (BuildContext context) => LoginPage(_model),
           '/main': (BuildContext context) => MainPage(_model),
           '/newUser': (BuildContext context) => NewUserPage(_model, null),
           '/newSector': (BuildContext context) => NewSectorPage(),
           '/newReport': (BuildContext context) => NewReportPage(),
           '/newProduct': (BuildContext context) => NewProductPage(_model, null),
           '/newShipment': (BuildContext context) => NewShipmentPage(_model),
+          '/useGoods': (BuildContext context) => UseGoodsPage(_model),
           '/sectors': (BuildContext context) => SectorsPage(),
           '/workers': (BuildContext context) => WorkersPage(),
           '/reports': (BuildContext context) => ReportsPage(),

@@ -24,6 +24,7 @@ class _ProductsPageState extends State<ProductsPage> {
           borderRadius: BorderRadius.circular(10.0),
         ),
         child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: <Widget>[
             (document['imageUrl'] != "" && document['imageUrl'] != null)
                 ? FadeInImage(
@@ -43,12 +44,21 @@ class _ProductsPageState extends State<ProductsPage> {
             SizedBox(
               width: 15.0,
             ),
-            Expanded(
-              child: Text(
-                document['name'],
-                style: TextStyle(color: Theme.of(context).accentColor),
-              ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  document['name'],
+                  style: TextStyle(color: Theme.of(context).accentColor),
+                ),
+                Text(
+                  "Quantity left: ${document['quantity']} ${document['measurementUnit']}",
+                  style: TextStyle(
+                      color: Theme.of(context).accentColor, fontSize: 10.0),
+                ),
+              ],
             ),
+            Padding(padding: EdgeInsets.only(right: 20.0)),
             GestureDetector(
               child: Icon(Icons.edit, color: Theme.of(context).accentColor),
               onTap: () {
@@ -213,19 +223,19 @@ class _ProductsPageState extends State<ProductsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).primaryColor,
-      appBar: AppBar(
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.of(context).pushReplacementNamed('/main');
-          },
+        backgroundColor: Theme.of(context).primaryColor,
+        appBar: AppBar(
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back),
+            onPressed: () {
+              Navigator.of(context).pushReplacementNamed('/main');
+            },
+          ),
+          title: LogoAppBar(),
+          elevation:
+              Theme.of(context).platform == TargetPlatform.iOS ? 0.0 : 4.0,
         ),
-        title: LogoAppBar(),
-        elevation: Theme.of(context).platform == TargetPlatform.iOS ? 0.0 : 4.0,
-      ),
-      body: _buildBody(),
-      floatingActionButton: FloatingAddActionButton("/newProduct")
-    );
+        body: _buildBody(),
+        floatingActionButton: FloatingAddActionButton("/newProduct"));
   }
 }

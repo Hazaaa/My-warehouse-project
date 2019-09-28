@@ -1,9 +1,16 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:scoped_model/scoped_model.dart';
 
 import 'package:mywarehouseproject/scoped_models/mainModel.dart';
 
 class LoginPage extends StatefulWidget {
+
+  final MainModel model;
+
+  LoginPage(this.model);
+
   @override
   State<StatefulWidget> createState() {
     return _LoginPageState();
@@ -15,6 +22,12 @@ class _LoginPageState extends State<LoginPage> {
   final _passwordController = TextEditingController();
 
   bool _hidePassword = true;
+
+  @override
+  void initState() {
+    Platform.isAndroid ? widget.model.getAndroidInfo() : widget.model.getIosInfo();
+    super.initState();
+  }
 
   @override
   void dispose() {
